@@ -1,9 +1,9 @@
 import 'dotenv/config';        // loads process.env
-import express       from 'express';
-import cors          from 'cors';
-import mongoose      from 'mongoose';
+import express from 'express';
+import cors from 'cors';
+import mongoose from 'mongoose';
 
-const app  = express();
+const app = express();
 const PORT = process.env.PORT || 3000;
 const MONGO_URI = process.env.MONGODB_CONNECTION_STRING;
 
@@ -12,6 +12,11 @@ app.use(express.json());
 
 // Basic test route
 app.get('/', (req, res) => {
+  res.send('🚀 ESM server up and haidar!');
+});
+
+// Basic test route
+app.get('/test2', (req, res) => {
   res.send('🚀 ESM server up and haidar!');
 });
 
