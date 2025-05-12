@@ -15,10 +15,6 @@ app.get('/', (req, res) => {
   res.send('🚀 ESM server up and haidar!');
 });
 
-// Basic test route
-app.get('/test', (req, res) => {
-  res.send('🚀 ESM server up and haidar!');
-});
 
 // Connect to MongoDB, then start listening
 mongoose
