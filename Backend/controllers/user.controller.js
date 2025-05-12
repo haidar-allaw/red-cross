@@ -1,4 +1,5 @@
 import User from '../models/User.js';
+import bcrypt from 'bcrypt';
 
 
 
@@ -17,8 +18,18 @@ export const signupUser = async (req, res) => {
       return res.status(409).json({ error: 'User with this email already exists.' });
     }
 
-    // Create and save user
-    const newUser = new User({ name, email, password, role });
+    // → HASHING HERE ←
+    const saltRounds = 10;                           // Number of salt rounds (10 is a good default)
+    const salt = await bcrypt.genSalt(saltRounds);   // Generate salt
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Create and save user with hashed password
+    const newUser = new User({
+      name,
+      email,
+      password: hashedPassword,
+      role
+    });
     await newUser.save();
 
     res.status(201).json({
@@ -34,6 +45,7 @@ export const signupUser = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
 export const getAllUsers = async (req, res) => {
   try {
     const users = await User.find({}, '-password'); // exclude password field
