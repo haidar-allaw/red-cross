@@ -1,26 +1,18 @@
-import 'dotenv/config';        // loads process.env
+import dotenv from 'dotenv';        // loads process.env
 import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
-
+import UserRouter from './routes/user.routes.js'
 const app = express();
+dotenv.config();
+
 const PORT = process.env.PORT || 3000;
 const MONGO_URI = process.env.MONGODB_CONNECTION_STRING;
 
 app.use(cors());
 app.use(express.json());
 
-// Basic test route
-app.get('/', (req, res) => {
-  res.send('🚀 ESM server up and haidar!');
-});
-
-// Basic test route
-app.get('/test2', (req, res) => {
-  res.send('🚀 ESM server up and haidar!');
-});
-
-
+app.use('/api/users',UserRouter)
 // Connect to MongoDB, then start listening
 mongoose
   .connect(MONGO_URI)
