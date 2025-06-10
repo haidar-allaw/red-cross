@@ -1,11 +1,10 @@
-import Header from "../components/header"
 
 const DonateBlood = () => {
     return (
         <div>
-            <Header />
             <h1>Haidar Kalb</h1>
-
+            <h2>Hadi Kallub kartable</h2>
+            <h3>Kassem zenje</h3>
         </div>
     )
 }
