@@ -30,6 +30,8 @@ const Header = () => {
                         <li><Link to="/volunteer" onClick={closeNav}>Volunteer</Link></li>
                         <li><Link to="/resources" onClick={closeNav}>Resources</Link></li>
                         <li><Link to="/contact" onClick={closeNav}>Contact</Link></li>
+                        {/* New Nearby Hospitals Link */}
+                        <li><Link to="/hospitals" onClick={closeNav}>Find Hospitals</Link></li>
                         <li className="donate-mobile">
                             <Link to="/donate" onClick={closeNav} className="btn-donate">
                                 Donate
