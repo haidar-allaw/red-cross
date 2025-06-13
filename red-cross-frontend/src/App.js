@@ -5,6 +5,7 @@ import DonateBlood from './pages/donateBlood';
 import HospitalMap from './components/HospitalMap';   // ① import it
 import Header from './components/header';
 import Footer from './components/footer';
+import AboutPage from './pages/aboutpage';
 import './index.css'
 
 const App = () => {
@@ -16,6 +17,7 @@ const App = () => {
           <Route path="/" element={<HomeScreen />} />
           <Route path="/donate-blood" element={<DonateBlood />} />
           <Route path="/hospitals" element={<HospitalMap />} />  {/* ② new route */}
+          <Route path="/about" element={<AboutPage />} />
         </Routes>
       </main>
       <Footer />
