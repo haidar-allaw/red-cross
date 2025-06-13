@@ -247,3 +247,38 @@
     position: relative;
     z-index: 1;
 }
+
+.nearby-bar {
+    background: #d32f2f;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 1rem;
+    margin-top: 1rem;
+    /* give it some breathing room */
+}
+
+.nearby-bar h2 {
+    margin: 0;
+    font-size: 1.2rem;
+}
+
+.toggle-buttons {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.toggle-btn {
+    background: transparent;
+    border: 1px solid #fff;
+    color: #fff;
+    padding: 0.25rem 0.75rem;
+    border-radius: 2rem;
+    text-decoration: none;
+    font-size: 0.9rem;
+}
+
+.toggle-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}

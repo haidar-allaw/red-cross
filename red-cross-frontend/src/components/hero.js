@@ -61,6 +61,14 @@ export default function Hero() {
             <div className="hotline">
                 <span className="phone-icon">📞</span> 01 390 320
             </div>
+            {/* ── Nearby Hospitals toggle bar ── */}
+            <div className="nearby-bar">
+                <h2>Donate blood near you</h2>
+                <div className="toggle-buttons">
+                    <Link to="/hospitals" className="toggle-btn">Map</Link>
+                    <Link to="/hospitals?view=list" className="toggle-btn">List</Link>
+                </div>
+            </div>
         </section>
     );
 }
