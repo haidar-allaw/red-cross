@@ -7,6 +7,9 @@ import Header from './components/header';
 import Footer from './components/footer';
 import AboutPage from './pages/aboutpage';
 import './index.css'
+import 'leaflet-routing-machine/dist/leaflet-routing-machine.css';
+import L from 'leaflet';
+import 'leaflet-routing-machine';
 
 const App = () => {
   return (
