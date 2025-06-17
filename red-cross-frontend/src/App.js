@@ -8,8 +8,9 @@ import Footer from './components/footer';
 import AboutPage from './pages/aboutpage';
 import './index.css'
 import 'leaflet-routing-machine/dist/leaflet-routing-machine.css';
-import L from 'leaflet';
 import 'leaflet-routing-machine';
+import LoginPage from './pages/login';
+import SignUpPage from './pages/signup';
 
 const App = () => {
   return (
@@ -19,8 +20,10 @@ const App = () => {
         <Routes>
           <Route path="/" element={<HomeScreen />} />
           <Route path="/donate-blood" element={<DonateBlood />} />
-          <Route path="/hospitals" element={<HospitalMap />} />  {/* ② new route */}
+          <Route path="/hospitals" element={<HospitalMap />} />  
           <Route path="/about" element={<AboutPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<SignUpPage />} />
         </Routes>
       </main>
       <Footer />
