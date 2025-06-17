@@ -6,6 +6,8 @@ import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
 import UserRouter from './routes/auth.routes.js';
+import MedicalCenterRouter from './routes/center.routes.js';
+import locationRoutes from './routes/location.routes.js';
 
 const app = express();
 
@@ -16,6 +18,8 @@ console.log('Mongo URI:', MONGO_URI);
 app.use(cors());
 app.use(express.json());
 app.use('/api/users', UserRouter);
+app.use('/api/centers', MedicalCenterRouter);
+app.use('/api/locations', locationRoutes);
 
 mongoose
   .connect(MONGO_URI)

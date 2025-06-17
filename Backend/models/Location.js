@@ -1,5 +1,5 @@
 // models/Location.js
-const mongoose = require('mongoose');
+import mongoose from 'mongoose'
 const { Schema } = mongoose;
 
 const locationSchema = new Schema({
@@ -10,5 +10,5 @@ const locationSchema = new Schema({
   collection: 'locations'
 });
 
-module.exports = mongoose.model('Location', locationSchema);
+export default mongoose.model('Location', locationSchema);
 

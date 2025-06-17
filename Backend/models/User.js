@@ -8,7 +8,7 @@ const userSchema = new Schema({
   email:       { type: String, required: true, unique: true },
   password:    { type: String, required: true },
   phoneNumber: { type: String, required: true },
-  role:        { type: String, enum: ['admin','user','medical center'], default: 'user' },
+  role:        { type: String, enum: ['admin','user'], default: 'user' },
   bloodtype:   { type: String, enum: ['O-','O+','A-','A+','B-','B+','AB-','AB+'] },
   address:     { type: String },
 }, {

@@ -26,7 +26,7 @@ const FullScreen = styled(Box)({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  background: `linear-gradient(135deg, ${BACKDROP} 0%, ${BACKDROP} 100%), url('/red-cross-bg.jpg') center/cover no-repeat`,
+  background: `linear-gradient(135deg, ${BACKDROP} 0%, ${BACKDROP} 100%)`,
 });
 
 const FormCard = styled(Paper)(({ theme }) => ({
@@ -74,11 +74,22 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
     try {
-      const { data } = await axios.post('http://localhost:4000/api/users/login', { email, password });
+      const { data } = await axios.post(
+        'http://localhost:4000/api/users/login',
+        { email, password }
+      );
       localStorage.setItem('authToken', data.token);
-      navigate('/');
+      // if admin, go to /admin, else to home
+      if (data.user.role === 'admin') {
+        navigate('/admin');
+      } else {
+        navigate('/');
+      }
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed. Check your credentials.');
+      setError(
+        err.response?.data?.message ||
+          'Login failed. Check your credentials.'
+      );
     } finally {
       setLoading(false);
     }
@@ -90,7 +101,10 @@ export default function LoginPage() {
         <Logo>
           <LockOutlinedIcon sx={{ color: RED_PRIMARY, fontSize: 36 }} />
         </Logo>
-        <Typography variant="h5" sx={{ mt: 2, mb: 1, fontWeight: 600, color: RED_PRIMARY }}>
+        <Typography
+          variant="h5"
+          sx={{ mt: 2, mb: 1, fontWeight: 600, color: RED_PRIMARY }}
+        >
           Red Cross Portal
         </Typography>
         <Typography variant="body2" sx={{ mb: 3, color: '#555' }}>
@@ -98,7 +112,11 @@ export default function LoginPage() {
         </Typography>
 
         {error && (
-          <Typography variant="body2" color="error" sx={{ mb: 2 }}>
+          <Typography
+            variant="body2"
+            color="error"
+            sx={{ mb: 2, fontSize: 14 }}
+          >
             {error}
           </Typography>
         )}
@@ -126,15 +144,36 @@ export default function LoginPage() {
           />
 
           <SubmitBtn type="submit" fullWidth disabled={loading}>
-            {loading ? <CircularProgress size={24} color="inherit" /> : 'Sign In'}
+            {loading ? (
+              <CircularProgress size={24} color="inherit" />
+            ) : (
+              'Sign In'
+            )}
           </SubmitBtn>
         </Box>
 
-        <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between', px: 1 }}>
-          <Link component={RouterLink} to="/forgot-password" underline="hover" sx={{ fontSize: 14 }}>
+        <Box
+          sx={{
+            mt: 2,
+            display: 'flex',
+            justifyContent: 'space-between',
+            px: 1,
+          }}
+        >
+          <Link
+            component={RouterLink}
+            to="/forgot-password"
+            underline="hover"
+            sx={{ fontSize: 14 }}
+          >
             Forgot password?
           </Link>
-          <Link component={RouterLink} to="/register" underline="hover" sx={{ fontSize: 14 }}>
+          <Link
+            component={RouterLink}
+            to="/register"
+            underline="hover"
+            sx={{ fontSize: 14 }}
+          >
             Sign up
           </Link>
         </Box>

@@ -1,5 +1,5 @@
 // models/MedicalCenter.js
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 const { Schema } = mongoose;
 
 const medicalCenterSchema = new Schema({
@@ -16,4 +16,4 @@ const medicalCenterSchema = new Schema({
   collection: 'medicalcenters'
 });
 
-module.exports = mongoose.model('MedicalCenter', medicalCenterSchema);
+export default mongoose.model('MedicalCenter', medicalCenterSchema);

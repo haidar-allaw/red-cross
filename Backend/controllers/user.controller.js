@@ -61,3 +61,13 @@ export async function login(req, res) {
     res.status(500).json({ message: 'Server error' });
   }
 }
+export async function getUserCount(req, res) {
+  try {
+    const count = await User.countDocuments();
+    res.json({ count });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+}
+
