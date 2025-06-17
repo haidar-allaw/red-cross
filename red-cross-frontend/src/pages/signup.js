@@ -22,7 +22,10 @@ export default function SignUpPage() {
     email: '',
     password: '',
     confirm: '',
-    role: 'patient', // default role
+    phoneNumber: '',
+    bloodtype: '',
+    address: '',
+    role: 'user',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -40,12 +43,15 @@ export default function SignUpPage() {
     setError('');
     setLoading(true);
     try {
-      await axios.post('/api/auth/register', {
-        firstName: form.firstName,
-        lastName:  form.lastName,
-        email:     form.email,
-        password:  form.password,
-        role:      form.role,       // send role to backend
+      await axios.post('http://localhost:4000/api/users/signup', {
+        firstname:   form.firstName,
+        lastname:    form.lastName,
+        email:       form.email,
+        password:    form.password,
+        phoneNumber: form.phoneNumber,
+        bloodtype:   form.bloodtype,
+        address:     form.address,
+        role:        form.role,
       });
       navigate('/login');
     } catch (e) {
@@ -54,6 +60,8 @@ export default function SignUpPage() {
       setLoading(false);
     }
   };
+
+  const bloodTypes = ['O-', 'O+', 'A-', 'A+', 'B-', 'B+', 'AB-', 'AB+'];
 
   return (
     <Box
@@ -127,6 +135,37 @@ export default function SignUpPage() {
             required
           />
           <TextField
+            name="phoneNumber"
+            label="Phone Number"
+            type="tel"
+            size="small"
+            value={form.phoneNumber}
+            onChange={handleChange}
+            required
+          />
+          <TextField
+            select
+            name="bloodtype"
+            label="Blood Type"
+            size="small"
+            value={form.bloodtype}
+            onChange={handleChange}
+            required
+          >
+            {bloodTypes.map((bt) => (
+              <MenuItem key={bt} value={bt}>
+                {bt}
+              </MenuItem>
+            ))}
+          </TextField>
+          <TextField
+            name="address"
+            label="Address"
+            size="small"
+            value={form.address}
+            onChange={handleChange}
+          />
+          <TextField
             select
             name="role"
             label="I am a"
@@ -134,8 +173,8 @@ export default function SignUpPage() {
             value={form.role}
             onChange={handleChange}
           >
-            <MenuItem value="patient">Patient</MenuItem>
-            <MenuItem value="donor">Donor</MenuItem>
+            <MenuItem value="user">Patient</MenuItem>
+            <MenuItem value="medical center">Medical Center</MenuItem>
           </TextField>
           <Button
             type="submit"

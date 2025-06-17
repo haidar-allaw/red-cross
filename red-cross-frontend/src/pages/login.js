@@ -74,9 +74,9 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
     try {
-      const { data } = await axios.post('/api/auth/login', { email, password });
+      const { data } = await axios.post('http://localhost:4000/api/users/login', { email, password });
       localStorage.setItem('authToken', data.token);
-      navigate('/dashboard');
+      navigate('/');
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed. Check your credentials.');
     } finally {
