@@ -1,19 +1,26 @@
-import dotenv from 'dotenv';        // loads process.env
+// server.js (or index.js)
+import dotenv from 'dotenv';
+dotenv.config();                // ← must be first!
+
 import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
-import UserRouter from './routes/user.routes.js'
+import UserRouter from './routes/auth.routes.js';
+import MedicalCenterRouter from './routes/center.routes.js';
+import locationRoutes from './routes/location.routes.js';
+
 const app = express();
-dotenv.config();
 
 const PORT = process.env.PORT || 3000;
 const MONGO_URI = process.env.MONGODB_CONNECTION_STRING;
 
+console.log('Mongo URI:', MONGO_URI);
 app.use(cors());
 app.use(express.json());
+app.use('/api/users', UserRouter);
+app.use('/api/centers', MedicalCenterRouter);
+app.use('/api/locations', locationRoutes);
 
-app.use('/api/users',UserRouter)
-// Connect to MongoDB, then start listening
 mongoose
   .connect(MONGO_URI)
   .then(() => {
@@ -22,7 +29,7 @@ mongoose
       console.log(`✅  Server listening at http://localhost:${PORT}`);
     });
   })
-  .catch(err => {
+  .catch((err) => {
     console.error('❌  MongoDB connection error:', err);
     process.exit(1);
   });

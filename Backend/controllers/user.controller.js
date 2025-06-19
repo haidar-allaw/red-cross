@@ -1,56 +1,73 @@
+// controllers/auth.controller.js
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
-import bcrypt from 'bcrypt';
+import dotenv from 'dotenv';
+dotenv.config();
 
+const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_EXPIRES = '7d';
 
-
-export const signupUser = async (req, res) => {
+export async function signup(req, res) {
+  const { firstname, lastname, email, password, phoneNumber, role, bloodtype, address } = req.body;
+  if (!firstname || !lastname || !email || !password || !phoneNumber) {
+    return res.status(400).json({ message: 'Missing required fields' });
+  }
   try {
-    const { name, email, password, role } = req.body;
-
-    // Basic validation
-    if (!name || !email || !password) {
-      return res.status(400).json({ error: 'Name, email, and password are required.' });
+    if (await User.findOne({ email })) {
+      return res.status(400).json({ message: 'Email already in use' });
     }
-
-    // Check if user already exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(409).json({ error: 'User with this email already exists.' });
-    }
-
-    // → HASHING HERE ←
-    const saltRounds = 10;                           // Number of salt rounds (10 is a good default)
-    const salt = await bcrypt.genSalt(saltRounds);   // Generate salt
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    // Create and save user with hashed password
-    const newUser = new User({
-      name,
-      email,
-      password: hashedPassword,
-      role
+    const salt = await bcrypt.genSalt(10);
+    const hash = await bcrypt.hash(password, salt);
+    const user = await User.create({
+      firstname, lastname, email,
+      password: hash,
+      phoneNumber, role, bloodtype, address
     });
-    await newUser.save();
-
+    const token = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: JWT_EXPIRES });
     res.status(201).json({
-      message: 'User created successfully.',
+      token,
+      user: { id: user._id, firstname, lastname, email, role }
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+}
+
+export async function login(req, res) {
+  const { email, password } = req.body;
+  if (!email || !password) {
+    return res.status(400).json({ message: 'Missing credentials' });
+  }
+  try {
+    const user = await User.findOne({ email });
+    if (!user) return res.status(401).json({ message: 'Invalid credentials' });
+    const match = await bcrypt.compare(password, user.password);
+    if (!match) return res.status(401).json({ message: 'Invalid credentials' });
+    const token = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: JWT_EXPIRES });
+    res.json({
+      token,
       user: {
-        id: newUser._id,
-        name: newUser.name,
-        email: newUser.email,
-        role: newUser.role
+        id: user._id,
+        firstname: user.firstname,
+        lastname: user.lastname,
+        email: user.email,
+        role: user.role
       }
     });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
   }
-};
-
-export const getAllUsers = async (req, res) => {
+}
+export async function getUserCount(req, res) {
   try {
-    const users = await User.find({}, '-password'); // exclude password field
-    res.status(200).json(users);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+    const count = await User.countDocuments();
+    res.json({ count });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
   }
-};
+}
+
