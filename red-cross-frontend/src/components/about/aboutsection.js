@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import './aboutsection.css';
+import allLives from '../../assets/all-lives.gif';
 // import aboutIllustration from '../assets/about-illustration.png';
 
 export default function AboutSection() {
@@ -27,9 +28,9 @@ export default function AboutSection() {
                         Read More &rarr;
                     </Link>
                 </div>
-                {/* <div className="about-visual">
-                    <img src={aboutIllustration} alt="Every Drop Counts Illustration" />
-                </div> */}
+                <div className="about-visual">
+                    <img src={allLives} alt="Every Drop Counts Illustration" />
+                </div>
             </div>
         </section>
     );

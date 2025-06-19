@@ -69,6 +69,25 @@ export default function Hero() {
                     <Link to="/hospitals?view=list" className="toggle-btn">List</Link>
                 </div>
             </div>
+            {/* Give Cards Section */}
+            <div className="give-cards">
+                <Link to="/give-blood" className="give-card">
+                    <div className="card-icon">🩸</div>
+                    <div className="card-title">Give Blood</div>
+                </Link>
+                <Link to="/give-time" className="give-card">
+                    <div className="card-icon">🤝</div>
+                    <div className="card-title">Give Time</div>
+                </Link>
+                <Link to="/give-space" className="give-card">
+                    <div className="card-icon">🚚</div>
+                    <div className="card-title">Give Space</div>
+                </Link>
+                <Link to="/give-support" className="give-card">
+                    <div className="card-icon">🎁</div>
+                    <div className="card-title">Give Support</div>
+                </Link>
+            </div>
         </section>
     );
 }

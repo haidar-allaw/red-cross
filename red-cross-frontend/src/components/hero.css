@@ -181,7 +181,7 @@
 }
 
 
-/* Optional: if you’d rather use an aspect-ratio instead of a hard height:
+/* Optional: if you'd rather use an aspect-ratio instead of a hard height:
 .hero-visual {
   width: 100%;
   max-width: 900px;
@@ -281,4 +281,55 @@
 
 .toggle-btn:hover {
     background: rgba(255, 255, 255, 0.2);
+}
+
+.give-cards {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    margin: 2rem 0;
+}
+
+.give-card {
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 1rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    padding: 2rem 1.5rem;
+    text-align: center;
+    text-decoration: none;
+    color: #222;
+    width: 160px;
+    transition: transform 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+.give-card:active {
+    transform: scale(0.96);
+    box-shadow: 0 4px 16px rgba(220, 38, 38, 0.2);
+}
+
+.card-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+}
+
+.card-title {
+    font-size: 1.2rem;
+    font-weight: bold;
+    letter-spacing: 1px;
+}
+
+@media (max-width: 900px) {
+    .give-cards {
+        flex-direction: column;
+        align-items: center;
+        gap: 1.5rem;
+    }
+
+    .give-card {
+        width: 90%;
+        max-width: 300px;
+    }
 }
