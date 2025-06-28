@@ -1,0 +1,58 @@
+{
+  "userModel": {
+    "firstname": { "type": "String", "required": true },
+    "lastname": { "type": "String", "required": true },
+    "email": { "type": "String", "required": true, "unique": true },
+    "password": { "type": "String", "required": true },
+    "phoneNumber": { "type": "String", "required": true },
+    "role": {
+      "type": "String",
+      "enum": ["admin", "user", "medical center"],
+      "default": "user"
+    },
+    "bloodtype": {
+      "type": "String",
+      "enum": ["O-", "O+", "A-", "A+", "B-", "B+", "AB-", "AB+"]
+    },
+    "address": { "type": "String" },
+    "userDonations": [
+      {
+        "medicalCenter": {
+          "type": "ObjectId",
+          "ref": "medicalCenter"
+        },
+        "timestamp": { "type": "Date", "default": "Date.now" }
+      }
+    ],
+    "userDestinations": [
+      {
+        "longitude": { "type": "Number" },
+        "latitude": { "type": "Number" },
+        "timestamp": { "type": "Date", "default": "Date.now" },
+        "duration": { "type": "Number" } 
+      }
+    ]
+  },
+  "medicalCenter": {
+    "name": { "type": "String", "required": true },
+    "email": { "type": "String", "required": true, "unique": true },
+    "password": { "type": "String", "required": true },
+    "phoneNumber": { "type": "String", "required": true },
+    "address": { "type": "String" },
+    "isApproved":{ "type": "Boolean" ,"default": 0},
+    "location": {
+      "latitude": { "type": "Number" },
+      "longitude": { "type": "Number" }
+    },
+    "blood": [
+      {
+        "bloodtype": {
+          "type": "String",
+          "enum": ["O-", "O+", "A-", "A+", "B-", "B+", "AB-", "AB+"]
+        },
+        "expirydate": { "type": "Date", "required": true },
+        "timestamp": { "type": "Date", "default": "Date.now" }
+      }
+    ]
+  }
+}

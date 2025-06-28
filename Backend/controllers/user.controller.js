@@ -61,12 +61,39 @@ export async function login(req, res) {
     res.status(500).json({ message: 'Server error' });
   }
 }
+
 export async function getUserCount(req, res) {
   try {
     const count = await User.countDocuments();
     res.json({ count });
   } catch (err) {
     console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+}
+
+// GET /api/users - Get all users with optional filtering and pagination
+export async function getUsers(req, res) {
+
+  const users = await User.find()
+  res.json({users});
+
+}
+
+// GET /api/users/:id - Get a specific user by ID
+export async function getUserById(req, res) {
+  const { id } = req.params;
+
+  try {
+    const user = await User.findById(id).select('-password');
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json(user);
+  } catch (err) {
+    console.error('Error fetching user:', err);
     res.status(500).json({ message: 'Server error' });
   }
 }

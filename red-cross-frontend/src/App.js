@@ -13,6 +13,7 @@ import SignUpPage from "./pages/signup";
 import AdminLayout from "./components/AdminLayout";
 import AdminHomePage from "./pages/admin/AdminHomePage";
 import AdminCentersApproval from "./pages/admin/AdminCentersApproval";
+import AdminUsers from "./pages/admin/AdminUsers";
 
 export default function App() {
   return (
@@ -23,6 +24,7 @@ export default function App() {
           {/* Admin section */}
           <Route path="admin" element={<AdminLayout />}>
             <Route index element={<AdminHomePage />} />
+            <Route path="users" element={<AdminUsers />} />
             <Route path="centers-approval" element={<AdminCentersApproval />} />
           </Route>
 

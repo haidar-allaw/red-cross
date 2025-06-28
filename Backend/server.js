@@ -8,6 +8,7 @@ import mongoose from 'mongoose';
 import UserRouter from './routes/auth.routes.js';
 import MedicalCenterRouter from './routes/center.routes.js';
 import locationRoutes from './routes/location.routes.js';
+import bloodRoutes from './routes/blood.routes.js';
 
 const app = express();
 
@@ -20,6 +21,7 @@ app.use(express.json());
 app.use('/api/users', UserRouter);
 app.use('/api/centers', MedicalCenterRouter);
 app.use('/api/locations', locationRoutes);
+app.use('/api/blood', bloodRoutes);
 
 mongoose
   .connect(MONGO_URI)
