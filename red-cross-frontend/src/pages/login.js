@@ -9,6 +9,11 @@ import {
   Button,
   CircularProgress,
   Link,
+  Radio,
+  RadioGroup,
+  FormControlLabel,
+  FormControl,
+  FormLabel,
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
@@ -67,6 +72,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [role, setRole] = useState('user'); // 'user' or 'center'
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -74,21 +80,33 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
     try {
-      const { data } = await axios.post(
-        'http://localhost:4000/api/users/login',
-        { email, password }
-      );
-      localStorage.setItem('authToken', data.token);
-      // if admin, go to /admin, else to home
-      if (data.user.role === 'admin') {
-        navigate('/admin');
+      let data;
+      if (role === 'center') {
+        const res = await axios.post(
+          'http://localhost:4000/api/centers/login',
+          { email, password }
+        );
+        data = res.data;
+        localStorage.setItem('authToken', data.token);
+        // Redirect to center dashboard or home
+        navigate('/center');
       } else {
-        navigate('/');
+        const res = await axios.post(
+          'http://localhost:4000/api/users/login',
+          { email, password }
+        );
+        data = res.data;
+        localStorage.setItem('authToken', data.token);
+        if (data.user.role === 'admin') {
+          navigate('/admin');
+        } else {
+          navigate('/');
+        }
       }
     } catch (err) {
       setError(
         err.response?.data?.message ||
-          'Login failed. Check your credentials.'
+        'Login failed. Check your credentials.'
       );
     } finally {
       setLoading(false);
@@ -122,6 +140,18 @@ export default function LoginPage() {
         )}
 
         <Box component="form" onSubmit={handleSubmit} noValidate>
+          <FormControl component="fieldset" sx={{ mb: 2, width: '100%' }}>
+            <FormLabel component="legend" sx={{ fontSize: 15, color: '#B71C1C' }}>Login as</FormLabel>
+            <RadioGroup
+              row
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              sx={{ justifyContent: 'center' }}
+            >
+              <FormControlLabel value="user" control={<Radio />} label="User/Admin" />
+              <FormControlLabel value="center" control={<Radio />} label="Medical Center" />
+            </RadioGroup>
+          </FormControl>
           <TextField
             label="Email Address"
             type="email"

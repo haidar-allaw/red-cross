@@ -31,12 +31,12 @@ import 'leaflet-geosearch/dist/geosearch.css';
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png'),
-  iconUrl:       require('leaflet/dist/images/marker-icon.png'),
-  shadowUrl:     require('leaflet/dist/images/marker-shadow.png'),
+  iconUrl: require('leaflet/dist/images/marker-icon.png'),
+  shadowUrl: require('leaflet/dist/images/marker-shadow.png'),
 });
 
 const RED = '#B71C1C';
-const bloodTypes = ['O-','O+','A-','A+','B-','B+','AB-','AB+'];
+const bloodTypes = ['O-', 'O+', 'A-', 'A+', 'B-', 'B+', 'AB-', 'AB+'];
 
 // Add the search control once, in 'button' style to avoid duplicates
 function SearchControl({ onSelect }) {
@@ -92,6 +92,7 @@ export default function SignUpPage() {
   const [mapOpen, setMapOpen] = useState(false);
   const mapRef = useRef(null);
   const navigate = useNavigate();
+  const [hospitalCardImage, setHospitalCardImage] = useState(null);
 
   const handleChange = e => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -119,32 +120,42 @@ export default function SignUpPage() {
       setError('Please select your location');
       return;
     }
+    if (role === 'medical center' && !hospitalCardImage) {
+      setError('Please upload your hospital card image');
+      return;
+    }
     setError('');
     setLoading(true);
     try {
       const endpoint = role === 'medical center'
-        ? '/api/centers/signup'
-        : '/api/users/signup';
-      const payload = role === 'medical center'
-        ? {
-            name:        form.centerName,
-            email:       form.email,
-            password:    form.password,
-            phoneNumber: form.phoneNumber,
-            address:     form.address,
-            location:    { latitude: form.locationLat, longitude: form.locationLng }
-          }
-        : {
-            firstname:   form.firstName,
-            lastname:    form.lastName,
-            email:       form.email,
-            password:    form.password,
-            phoneNumber: form.phoneNumber,
-            bloodtype:   form.bloodtype,
-            address:     form.address,
-            role:        'user'
-          };
-      await axios.post(endpoint, payload);
+        ? 'http://localhost:4000/api/centers/signup'
+        : 'http://localhost:4000/api/users/signup';
+      if (role === 'medical center') {
+        const formData = new FormData();
+        formData.append('name', form.centerName);
+        formData.append('email', form.email);
+        formData.append('password', form.password);
+        formData.append('phoneNumber', form.phoneNumber);
+        formData.append('address', form.address);
+        formData.append('location[latitude]', form.locationLat);
+        formData.append('location[longitude]', form.locationLng);
+        formData.append('hospitalCardImage', hospitalCardImage);
+        await axios.post(endpoint, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+      } else {
+        const payload = {
+          firstname: form.firstName,
+          lastname: form.lastName,
+          email: form.email,
+          password: form.password,
+          phoneNumber: form.phoneNumber,
+          bloodtype: form.bloodtype,
+          address: form.address,
+          role: 'user'
+        };
+        await axios.post(endpoint, payload);
+      }
       navigate('/login');
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed');
@@ -260,6 +271,22 @@ export default function SignUpPage() {
                     {form.locationLat
                       ? `Location set: ${form.locationLat.toFixed(4)}, ${form.locationLng.toFixed(4)}`
                       : 'Select Location on Map'}
+                  </Button>
+                </Grid>
+                <Grid item xs={12}>
+                  <Button
+                    variant="contained"
+                    component="label"
+                    fullWidth
+                    sx={{ bgcolor: '#e0e0e0', color: '#333', mt: 1 }}
+                  >
+                    {hospitalCardImage ? hospitalCardImage.name : 'Upload Hospital Card Image'}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      hidden
+                      onChange={e => setHospitalCardImage(e.target.files[0])}
+                    />
                   </Button>
                 </Grid>
               </>

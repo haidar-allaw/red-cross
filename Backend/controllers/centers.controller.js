@@ -2,11 +2,28 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import MedicalCenter from '../models/MedicalCenter.js';
+import Location from '../models/Location.js';      // ← import your Location model
+import multer from 'multer';
+import path from 'path';
+
 import dotenv from 'dotenv';
 dotenv.config();
 
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES = '7d';
+
+// Multer setup for hospital card image uploads
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, path.join('uploads/hospitalCards'));
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+export const uploadHospitalCard = multer({ storage }).single('hospitalCardImage');
 
 // POST /api/centers/signup
 export async function signupCenter(req, res) {
@@ -18,6 +35,16 @@ export async function signupCenter(req, res) {
     if (await MedicalCenter.findOne({ email })) {
       return res.status(400).json({ message: 'Email already in use' });
     }
+    let locationId = undefined;
+    if (location && typeof location === 'object' && location.latitude && location.longitude) {
+      // Create a Location document
+      const locDoc = await Location.create({ latitude: location.latitude, longitude: location.longitude });
+      locationId = locDoc._id;
+    } else if (location) {
+      // If location is provided but not in expected format
+      return res.status(400).json({ message: 'Invalid location format' });
+    }
+    const hospitalCardImage = req.file ? req.file.path : undefined;
     const salt = await bcrypt.genSalt(10);
     const hash = await bcrypt.hash(password, salt);
     const center = await MedicalCenter.create({
@@ -26,7 +53,8 @@ export async function signupCenter(req, res) {
       password: hash,
       phoneNumber,
       address,
-      location
+      location: locationId,
+      hospitalCardImage
     });
     const token = jwt.sign({ id: center._id }, JWT_SECRET, { expiresIn: JWT_EXPIRES });
     res.status(201).json({
@@ -46,6 +74,9 @@ export async function loginCenter(req, res) {
   try {
     const center = await MedicalCenter.findOne({ email });
     if (!center) return res.status(401).json({ message: 'Invalid credentials' });
+    if (!center.isApproved) {
+      return res.status(403).json({ message: 'Medical center not approved yet. Please wait for admin approval.' });
+    }
     const match = await bcrypt.compare(password, center.password);
     if (!match) return res.status(401).json({ message: 'Invalid credentials' });
     const token = jwt.sign({ id: center._id }, JWT_SECRET, { expiresIn: JWT_EXPIRES });

@@ -9,12 +9,13 @@ import {
   approveCenter,
   getCenterCount,
   getPendingCount,
+  uploadHospitalCard,
 } from "../controllers/centers.controller.js";
 
 const router = express.Router();
 
 // Public endpoints
-router.post("/signup", signupCenter);
+router.post("/signup", uploadHospitalCard, signupCenter);
 router.post("/login", loginCenter);
 
 // Listing endpoints
