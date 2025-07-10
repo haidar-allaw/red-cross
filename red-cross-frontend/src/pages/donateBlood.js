@@ -31,7 +31,8 @@ export default function DonateBloodPage() {
     medicalCenter: '',
     bloodtype: '',
     units: '',
-    date: ''
+    date: '',
+    time: '' // Add time field
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -74,14 +75,26 @@ export default function DonateBloodPage() {
     setSuccess('');
     setSubmitting(true);
     try {
-      await axios.post('http://localhost:4000/api/blood/donate', {
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        setError('Please login to donate blood');
+        return;
+      }
+
+      console.log('Submitting donation with token:', token);
+      const response = await axios.post('http://localhost:4000/api/blood/donate', {
         medicalCenter: form.medicalCenter,
         bloodtype: form.bloodtype,
         unit: Number(form.units),
-        timestamp: form.date
+        timestamp: form.date + 'T' + form.time // Combine date and time for backend
+      }, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       });
-      setSuccess('Thank you for your donation!');
-      setForm({ medicalCenter: '', bloodtype: '', units: '', date: '' });
+      console.log('Donation response:', response.data);
+      setSuccess('Thank you for your donation! Your appointment has been scheduled.');
+      setForm({ medicalCenter: '', bloodtype: '', units: '', date: '', time: '' });
     } catch (err) {
       setError(err.response?.data?.message || 'Submission failed');
     } finally {
@@ -388,6 +401,27 @@ export default function DonateBloodPage() {
                     sx={{
                       '& .MuiOutlinedInput-root': {
                         pl: 5,
+                        borderRadius: 2,
+                        '&:hover fieldset': { borderColor: RED },
+                        '&.Mui-focused fieldset': { borderColor: RED },
+                      },
+                      '& .MuiInputLabel-root.Mui-focused': { color: RED },
+                    }}
+                  />
+                  {/* Time Picker */}
+                  <TextField
+                    name="time"
+                    label="Time of Donation"
+                    type="time"
+                    fullWidth
+                    size="medium"
+                    required
+                    InputLabelProps={{ shrink: true }}
+                    value={form.time}
+                    onChange={handleChange}
+                    sx={{
+                      mt: 3,
+                      '& .MuiOutlinedInput-root': {
                         borderRadius: 2,
                         '&:hover fieldset': { borderColor: RED },
                         '&.Mui-focused fieldset': { borderColor: RED },

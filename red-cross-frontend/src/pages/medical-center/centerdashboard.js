@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Paper, Typography, TextField, MenuItem, Button, Grid, Avatar, CircularProgress, Alert } from '@mui/material';
+import { Box, Paper, Typography, TextField, MenuItem, Button, Grid, Avatar, CircularProgress, Alert, Card, CardContent, Divider, Chip } from '@mui/material';
+import { CalendarToday, AccessTime, Person, Bloodtype } from '@mui/icons-material';
 import axios from 'axios';
 
 const bloodTypes = ['O-', 'O+', 'A-', 'A+', 'B-', 'B+', 'AB-', 'AB+'];
@@ -8,6 +9,7 @@ export default function CenterDashboard() {
     const [centerInfo, setCenterInfo] = useState(null);
     const [availableBlood, setAvailableBlood] = useState([]);
     const [neededBlood, setNeededBlood] = useState([]);
+    const [donationRequests, setDonationRequests] = useState([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
@@ -28,6 +30,11 @@ export default function CenterDashboard() {
                 setCenterInfo(data);
                 setAvailableBlood(data.availableBloodTypes || []);
                 setNeededBlood(data.neededBloodTypes || []);
+
+                // Fetch donation requests for this center
+                const { data: requests } = await axios.get(`http://localhost:4000/api/blood/center/${centerId}`);
+                console.log('Donation requests received:', requests);
+                setDonationRequests(requests.filter(req => req.status === 'scheduled'));
             } catch (err) {
                 setError('Failed to load center info');
             } finally {
@@ -129,6 +136,114 @@ export default function CenterDashboard() {
                         </Button>
                     </Grid>
                 </Grid>
+            </Paper>
+
+            {/* Donation Requests Section */}
+            <Paper sx={{ p: 4, maxWidth: 800, width: '100%', mt: 3 }}>
+                <Typography variant="h5" sx={{ mb: 3, color: '#B71C1C', fontWeight: 700 }}>
+                    Scheduled Donation Requests
+                </Typography>
+
+                {donationRequests.length === 0 ? (
+                    <Alert severity="info">No scheduled donation requests at the moment.</Alert>
+                ) : (
+                    <Grid container spacing={2}>
+                        {donationRequests.map((request) => (
+                            <Grid item xs={12} key={request._id}>
+                                <Card sx={{
+                                    border: '1px solid #e0e0e0'
+                                }}>
+                                    <CardContent>
+                                        <Grid container spacing={2} alignItems="center">
+                                            <Grid item xs={12} md={3}>
+                                                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                                                    <Person sx={{ color: '#B71C1C', mr: 1 }} />
+                                                    <Typography variant="h6">
+                                                        {request.user?.firstname && request.user?.lastname
+                                                            ? `${request.user.firstname} ${request.user.lastname}`
+                                                            : 'User Information Not Available'
+                                                        }
+                                                    </Typography>
+                                                </Box>
+                                                <Typography variant="body2" color="text.secondary">
+                                                    {request.user?.email || 'Email not available'}
+                                                </Typography>
+                                                <Typography variant="body2" color="text.secondary">
+                                                    {request.user?.phoneNumber || 'Phone not available'}
+                                                </Typography>
+                                            </Grid>
+
+                                            <Grid item xs={12} md={2}>
+                                                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                                                    <Bloodtype sx={{ color: '#B71C1C', mr: 1 }} />
+                                                    <Typography variant="h6">
+                                                        {request.bloodtype}
+                                                    </Typography>
+                                                </Box>
+                                                <Typography variant="body2" color="text.secondary">
+                                                    {request.units} units
+                                                </Typography>
+                                            </Grid>
+
+                                            <Grid item xs={12} md={3}>
+                                                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                                                    <CalendarToday sx={{ color: '#B71C1C', mr: 1 }} />
+                                                    <Typography variant="body1">
+                                                        {new Date(request.timestamp).toLocaleDateString()}
+                                                    </Typography>
+                                                </Box>
+                                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                                    <AccessTime sx={{ color: '#B71C1C', mr: 1 }} />
+                                                    <Typography variant="body1">
+                                                        {new Date(request.timestamp).toLocaleTimeString([], {
+                                                            hour: '2-digit',
+                                                            minute: '2-digit'
+                                                        })}
+                                                    </Typography>
+                                                </Box>
+                                            </Grid>
+
+                                            <Grid item xs={12} md={2}>
+                                                <Typography
+                                                    variant="body2"
+                                                    sx={{
+                                                        fontWeight: 600,
+                                                        color: request.status === 'scheduled' ? '#1976d2' : '#666',
+                                                        textTransform: 'capitalize'
+                                                    }}
+                                                >
+                                                    {request.status}
+                                                </Typography>
+                                            </Grid>
+
+                                            <Grid item xs={12} md={2}>
+                                                <Box sx={{ display: 'flex', gap: 1 }}>
+                                                    <Button
+                                                        variant="contained"
+                                                        color="success"
+                                                        size="small"
+                                                        sx={{ bgcolor: '#4caf50' }}
+                                                        onClick={() => console.log('Complete clicked')}
+                                                    >
+                                                        Complete
+                                                    </Button>
+                                                    <Button
+                                                        variant="outlined"
+                                                        color="error"
+                                                        size="small"
+                                                        onClick={() => console.log('Cancel clicked')}
+                                                    >
+                                                        Cancel
+                                                    </Button>
+                                                </Box>
+                                            </Grid>
+                                        </Grid>
+                                    </CardContent>
+                                </Card>
+                            </Grid>
+                        ))}
+                    </Grid>
+                )}
             </Paper>
         </Box>
     );
