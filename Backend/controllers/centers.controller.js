@@ -93,7 +93,7 @@ export async function loginCenter(req, res) {
 // GET /api/centers
 export async function listApprovedCenters(req, res) {
   try {
-    const centers = await MedicalCenter.find({ isApproved: true }).select('name address location');
+    const centers = await MedicalCenter.find({ isApproved: true }).select('name address location availableBloodTypes neededBloodTypes');
     res.json(centers);
   } catch (err) {
     console.error(err);
@@ -132,6 +132,26 @@ export async function approveCenter(req, res) {
     const center = await MedicalCenter.findByIdAndUpdate(id, { isApproved: true }, { new: true });
     if (!center) return res.status(404).json({ message: 'Center not found' });
     res.json({ message: 'Medical center approved', center: { id: center._id, isApproved: center.isApproved } });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+}
+
+// PATCH /api/centers/:id
+export async function updateCenter(req, res) {
+  const { id } = req.params;
+  const updateFields = {};
+  // Only allow updating certain fields
+  if (req.body.availableBloodTypes) updateFields.availableBloodTypes = req.body.availableBloodTypes;
+  if (req.body.neededBloodTypes) updateFields.neededBloodTypes = req.body.neededBloodTypes;
+  if (req.body.name) updateFields.name = req.body.name;
+  if (req.body.address) updateFields.address = req.body.address;
+  // Add more fields as needed
+  try {
+    const center = await MedicalCenter.findByIdAndUpdate(id, updateFields, { new: true });
+    if (!center) return res.status(404).json({ message: 'Center not found' });
+    res.json(center);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });

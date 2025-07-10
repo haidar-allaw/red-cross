@@ -9,8 +9,12 @@ import UserRouter from './routes/auth.routes.js';
 import MedicalCenterRouter from './routes/center.routes.js';
 import locationRoutes from './routes/location.routes.js';
 import bloodRoutes from './routes/blood.routes.js';
+import path from 'path';
 
 const app = express();
+
+// Serve static files from uploads directory
+app.use('/uploads', express.static(path.join(process.cwd(), 'Backend', 'uploads')));
 
 const PORT = process.env.PORT || 3000;
 const MONGO_URI = process.env.MONGODB_CONNECTION_STRING;

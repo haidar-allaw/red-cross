@@ -12,7 +12,11 @@ import {
   Alert,
   Divider,
   Card,
-  CardContent
+  CardContent,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions
 } from '@mui/material';
 import LocalHospitalIcon from '@mui/icons-material/LocalHospital';
 import BloodtypeIcon from '@mui/icons-material/Bloodtype';
@@ -34,6 +38,10 @@ export default function DonateBloodPage() {
   const [success, setSuccess] = useState('');
   const RED = '#B71C1C';
   const bloodTypes = ['O-', 'O+', 'A-', 'A+', 'B-', 'B+', 'AB-', 'AB+'];
+  const [requestedBloodType, setRequestedBloodType] = useState('');
+  const [filteredCenters, setFilteredCenters] = useState([]);
+  const [requestDialogOpen, setRequestDialogOpen] = useState(false);
+  const [selectedHospital, setSelectedHospital] = useState(null);
 
   // fetch list of approved centers
   useEffect(() => {
@@ -43,6 +51,19 @@ export default function DonateBloodPage() {
       .catch(() => setCenters([]))
       .finally(() => setLoadingCenters(false));
   }, []);
+
+  // Filter centers when requestedBloodType changes
+  useEffect(() => {
+    if (requestedBloodType) {
+      setFilteredCenters(
+        centers.filter(c =>
+          Array.isArray(c.availableBloodTypes) && c.availableBloodTypes.includes(requestedBloodType)
+        )
+      );
+    } else {
+      setFilteredCenters([]);
+    }
+  }, [requestedBloodType, centers]);
 
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -55,9 +76,9 @@ export default function DonateBloodPage() {
     try {
       await axios.post('http://localhost:4000/api/blood/donate', {
         medicalCenter: form.medicalCenter,
-        bloodtype:     form.bloodtype,
-        unit:          Number(form.units),
-        timestamp:     form.date
+        bloodtype: form.bloodtype,
+        unit: Number(form.units),
+        timestamp: form.date
       });
       setSuccess('Thank you for your donation!');
       setForm({ medicalCenter: '', bloodtype: '', units: '', date: '' });
@@ -68,13 +89,22 @@ export default function DonateBloodPage() {
     }
   };
 
+  const handleRequestBlood = (center) => {
+    setSelectedHospital(center);
+    setRequestDialogOpen(true);
+  };
+  const handleCloseDialog = () => {
+    setRequestDialogOpen(false);
+    setSelectedHospital(null);
+  };
+
   if (loadingCenters) {
     return (
-      <Box 
-        sx={{ 
-          minHeight: '80vh', 
-          display: 'flex', 
-          alignItems: 'center', 
+      <Box
+        sx={{
+          minHeight: '80vh',
+          display: 'flex',
+          alignItems: 'center',
           justifyContent: 'center',
           background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)'
         }}
@@ -85,8 +115,8 @@ export default function DonateBloodPage() {
   }
 
   return (
-    <Box 
-      sx={{ 
+    <Box
+      sx={{
         minHeight: '100vh',
         background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
         py: 4
@@ -108,10 +138,10 @@ export default function DonateBloodPage() {
             }}
           >
           </Box>
-          <Typography 
-            variant="h3" 
-            sx={{ 
-              color: RED, 
+          <Typography
+            variant="h3"
+            sx={{
+              color: RED,
               fontWeight: 700,
               mb: 1,
               textShadow: '0 2px 4px rgba(0,0,0,0.1)'
@@ -119,9 +149,9 @@ export default function DonateBloodPage() {
           >
             Donate Blood
           </Typography>
-          <Typography 
-            variant="h6" 
-            sx={{ 
+          <Typography
+            variant="h6"
+            sx={{
               color: 'text.secondary',
               fontWeight: 400,
               maxWidth: 600,
@@ -132,8 +162,88 @@ export default function DonateBloodPage() {
           </Typography>
         </Box>
 
-        <Card 
-          sx={{ 
+        {/* Request Blood Section */}
+        <Card
+          sx={{
+            borderRadius: 3,
+            boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
+            overflow: 'hidden',
+            background: 'rgba(255, 255, 255, 0.95)',
+            backdropFilter: 'blur(10px)',
+            maxWidth: 500,
+            mx: 'auto',
+            mb: 4
+          }}
+        >
+          <Box
+            sx={{
+              background: `linear-gradient(135deg, ${RED} 0%, #d32f2f 100%)`,
+              py: 3,
+              px: 4,
+              color: 'white'
+            }}
+          >
+            <Typography variant="h5" sx={{ fontWeight: 600 }}>
+              Request Blood
+            </Typography>
+            <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5 }}>
+              Select the blood type you need to see available hospitals
+            </Typography>
+          </Box>
+          <CardContent sx={{ p: 4 }}>
+            <TextField
+              select
+              label="Blood Type Needed"
+              value={requestedBloodType}
+              onChange={e => setRequestedBloodType(e.target.value)}
+              fullWidth
+              size="medium"
+              sx={{ mb: 3 }}
+            >
+              <MenuItem value="">-- Select Blood Type --</MenuItem>
+              {bloodTypes.map(bt => (
+                <MenuItem key={bt} value={bt}>{bt}</MenuItem>
+              ))}
+            </TextField>
+            {requestedBloodType && (
+              filteredCenters.length > 0 ? (
+                <Box>
+                  <Typography variant="subtitle1" sx={{ mb: 2, color: RED, fontWeight: 600 }}>
+                    Hospitals with {requestedBloodType} available:
+                  </Typography>
+                  <Grid container spacing={2}>
+                    {filteredCenters.map(center => (
+                      <Grid item xs={12} key={center._id}>
+                        <Card sx={{ p: 2, display: 'flex', alignItems: 'center', boxShadow: 2, justifyContent: 'space-between' }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                            <LocalHospitalIcon sx={{ color: RED, fontSize: 32, mr: 2 }} />
+                            <Box>
+                              <Typography variant="h6">{center.name}</Typography>
+                              <Typography variant="body2" color="text.secondary">{center.address}</Typography>
+                            </Box>
+                          </Box>
+                          <Button
+                            variant="contained"
+                            color="primary"
+                            sx={{ ml: 2, bgcolor: RED, fontWeight: 600, borderRadius: 2 }}
+                            onClick={() => handleRequestBlood(center)}
+                          >
+                            Request Blood
+                          </Button>
+                        </Card>
+                      </Grid>
+                    ))}
+                  </Grid>
+                </Box>
+              ) : (
+                <Alert severity="info">No hospitals currently have this blood type available.</Alert>
+              )
+            )}
+          </CardContent>
+        </Card>
+
+        <Card
+          sx={{
             borderRadius: 3,
             boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
             overflow: 'hidden',
@@ -177,7 +287,7 @@ export default function DonateBloodPage() {
                 <Grid item xs={12} md={6}>
                   {/* Medical Center */}
                   <Box sx={{ position: 'relative', mb: 3 }}>
-                   
+
                     <TextField
                       select
                       name="medicalCenter"
@@ -207,7 +317,7 @@ export default function DonateBloodPage() {
 
                   {/* Blood Type */}
                   <Box sx={{ position: 'relative', mb: 3 }}>
-                    
+
                     <TextField
                       select
                       name="bloodtype"
@@ -255,43 +365,43 @@ export default function DonateBloodPage() {
                       '& .MuiInputLabel-root.Mui-focused': { color: RED },
                     }}
                   />
-             
-                    <CalendarTodayIcon 
-                      sx={{ 
-                        position: 'absolute', 
-                        left: 12, 
-                        top: 16, 
-                        color: 'text.secondary',
-                        zIndex: 1
-                      }} 
-                    />
-                    <TextField
-                      name="date"
-                      label="Date of Donation"
-                      type="date"
-                      fullWidth
-                      size="medium"
-                      required
-                      InputLabelProps={{ shrink: true }}
-                      value={form.date}
-                      onChange={handleChange}
-                      sx={{
-                        '& .MuiOutlinedInput-root': {
-                          pl: 5,
-                          borderRadius: 2,
-                          '&:hover fieldset': { borderColor: RED },
-                          '&.Mui-focused fieldset': { borderColor: RED },
-                        },
-                        '& .MuiInputLabel-root.Mui-focused': { color: RED },
-                      }}
-                    />
-                
-                {/* Divider */}
-                <Grid item xs={12}>
-                  <Divider sx={{ my: 2 }} />
-                </Grid>
 
-                {/* Submit button */}
+                  <CalendarTodayIcon
+                    sx={{
+                      position: 'absolute',
+                      left: 12,
+                      top: 16,
+                      color: 'text.secondary',
+                      zIndex: 1
+                    }}
+                  />
+                  <TextField
+                    name="date"
+                    label="Date of Donation"
+                    type="date"
+                    fullWidth
+                    size="medium"
+                    required
+                    InputLabelProps={{ shrink: true }}
+                    value={form.date}
+                    onChange={handleChange}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        pl: 5,
+                        borderRadius: 2,
+                        '&:hover fieldset': { borderColor: RED },
+                        '&.Mui-focused fieldset': { borderColor: RED },
+                      },
+                      '& .MuiInputLabel-root.Mui-focused': { color: RED },
+                    }}
+                  />
+
+                  {/* Divider */}
+                  <Grid item xs={12}>
+                    <Divider sx={{ my: 2 }} />
+                  </Grid>
+
+                  {/* Submit button */}
                   <Button
                     type="submit"
                     variant="contained"
@@ -325,6 +435,30 @@ export default function DonateBloodPage() {
             </Box>
           </CardContent>
         </Card>
+
+        {/* Request Blood Dialog */}
+        <Dialog open={requestDialogOpen} onClose={handleCloseDialog}>
+          <DialogTitle>Request Blood</DialogTitle>
+          <DialogContent>
+            {selectedHospital && (
+              <Box>
+                <Typography variant="h6" sx={{ color: RED }}>{selectedHospital.name}</Typography>
+                <Typography variant="body2" sx={{ mb: 1 }}>{selectedHospital.address}</Typography>
+                <Typography variant="body1" sx={{ mt: 2 }}>
+                  You are requesting <b>{requestedBloodType}</b> blood from this hospital.
+                </Typography>
+                <Typography variant="body2" sx={{ mt: 2, color: 'text.secondary' }}>
+                  Please contact the hospital directly or visit for urgent needs.
+                </Typography>
+              </Box>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleCloseDialog} color="primary" variant="contained" sx={{ bgcolor: RED }}>
+              Close
+            </Button>
+          </DialogActions>
+        </Dialog>
 
         <Box sx={{ textAlign: 'center', mt: 4 }}>
           <Typography variant="body2" sx={{ color: 'text.secondary' }}>

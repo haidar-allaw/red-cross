@@ -19,6 +19,7 @@ import { styled } from '@mui/material/styles';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import axios from 'axios';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 // Branding colors
 const RED_PRIMARY = '#B71C1C';
@@ -74,31 +75,45 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [role, setRole] = useState('user'); // 'user' or 'center'
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
     try {
-      let data;
+      let data, token;
       if (role === 'center') {
         const res = await axios.post(
           'http://localhost:4000/api/centers/login',
           { email, password }
         );
         data = res.data;
-        localStorage.setItem('authToken', data.token);
-        // Redirect to center dashboard or home
-        navigate('/center');
+        token = data.token;
+        login(token);
+        // Decode token to get role
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        if (payload.role === 'center' || !payload.role) {
+          navigate('/center');
+        } else if (payload.role === 'admin') {
+          navigate('/admin');
+        } else {
+          navigate('/');
+        }
       } else {
         const res = await axios.post(
           'http://localhost:4000/api/users/login',
           { email, password }
         );
         data = res.data;
-        localStorage.setItem('authToken', data.token);
-        if (data.user.role === 'admin') {
+        token = data.token;
+        login(token);
+        // Decode token to get role
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        if (payload.role === 'admin') {
           navigate('/admin');
+        } else if (payload.role === 'center') {
+          navigate('/center');
         } else {
           navigate('/');
         }

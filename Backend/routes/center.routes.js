@@ -10,6 +10,7 @@ import {
   getCenterCount,
   getPendingCount,
   uploadHospitalCard,
+  updateCenter,
 } from "../controllers/centers.controller.js";
 
 const router = express.Router();
@@ -26,5 +27,6 @@ router.get("/pendingCount", getPendingCount);
 // Detail & actions
 router.get("/:id", getCenterById);
 router.patch("/:id/approve", approveCenter);
+router.patch("/:id", updateCenter);
 
 export default router;

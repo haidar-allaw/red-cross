@@ -23,7 +23,9 @@ import DashboardIcon from '@mui/icons-material/Dashboard';
 import PendingActionsIcon from '@mui/icons-material/PendingActions';
 import PeopleIcon from '@mui/icons-material/People';
 import BloodtypeIcon from '@mui/icons-material/Bloodtype';
-import { NavLink, Outlet } from 'react-router-dom';
+import LogoutIcon from '@mui/icons-material/Logout';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 const drawerWidth = 280;
 const RED = '#B71C1C';
@@ -34,52 +36,59 @@ export default function AdminLayout() {
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const handleDrawerToggle = () => setMobileOpen(o => !o);
 
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
   const navItems = [
-    { 
-      label: 'Dashboard', 
-      icon: <DashboardIcon />, 
+    {
+      label: 'Dashboard',
+      icon: <DashboardIcon />,
       to: '/admin',
       description: 'Overview and statistics'
     },
-    { 
-      label: 'Users', 
-      icon: <PeopleIcon />, 
+    {
+      label: 'Users',
+      icon: <PeopleIcon />,
       to: '/admin/users',
       description: 'Manage user accounts',
       badge: 'New'
     },
-    { 
-      label: 'Centers Approval', 
-      icon: <PendingActionsIcon />, 
+    {
+      label: 'Centers Approval',
+      icon: <PendingActionsIcon />,
       to: '/admin/centers-approval',
       description: 'Approve medical centers'
     },
-    { 
-      label: 'Blood Donations', 
-      icon: <BloodtypeIcon />, 
+    {
+      label: 'Blood Donations',
+      icon: <BloodtypeIcon />,
       to: '/admin/blood-donations',
       description: 'View blood donations'
     }
   ];
 
   const drawer = (
-    <Box sx={{ 
-      height: '100%', 
+    <Box sx={{
+      height: '100%',
       background: 'linear-gradient(180deg, #B71C1C 0%, #d32f2f 100%)',
       display: 'flex',
       flexDirection: 'column'
     }}>
       {/* Header */}
-      <Box sx={{ 
-        p: 3, 
+      <Box sx={{
+        p: 3,
         textAlign: 'center',
         borderBottom: '1px solid rgba(255,255,255,0.1)'
       }}>
-        <Avatar 
-          sx={{ 
-            width: 60, 
-            height: 60, 
-            mx: 'auto', 
+        <Avatar
+          sx={{
+            width: 60,
+            height: 60,
+            mx: 'auto',
             mb: 2,
             bgcolor: 'rgba(255,255,255,0.2)',
             border: '2px solid rgba(255,255,255,0.3)'
@@ -123,7 +132,7 @@ export default function AdminLayout() {
                 transition: 'all 0.3s ease'
               }}
             >
-              <ListItemIcon sx={{ 
+              <ListItemIcon sx={{
                 color: 'inherit',
                 minWidth: 40
               }}>
@@ -136,17 +145,17 @@ export default function AdminLayout() {
                 )}
               </ListItemIcon>
               <Box sx={{ flex: 1 }}>
-                <ListItemText 
-                  primary={item.label} 
-                  primaryTypographyProps={{ 
+                <ListItemText
+                  primary={item.label}
+                  primaryTypographyProps={{
                     fontWeight: 500,
                     fontSize: '0.95rem'
                   }}
                 />
                 {item.description && (
-                  <Typography 
-                    variant="caption" 
-                    sx={{ 
+                  <Typography
+                    variant="caption"
+                    sx={{
                       color: 'rgba(255,255,255,0.6)',
                       fontSize: '0.75rem'
                     }}
@@ -161,8 +170,8 @@ export default function AdminLayout() {
       </Box>
 
       {/* Footer */}
-      <Box sx={{ 
-        p: 2, 
+      <Box sx={{
+        p: 2,
         borderTop: '1px solid rgba(255,255,255,0.1)',
         textAlign: 'center'
       }}>
@@ -176,7 +185,7 @@ export default function AdminLayout() {
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh' }}>
       <CssBaseline />
-      
+
       {/* App Bar */}
       <AppBar
         position="fixed"
@@ -206,11 +215,13 @@ export default function AdminLayout() {
               Admin Dashboard
             </Typography>
           </Box>
-          
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <Avatar sx={{ bgcolor: '#B71C1C', width: 35, height: 35 }}>
               <PeopleIcon sx={{ fontSize: 20 }} />
             </Avatar>
+            <IconButton color="error" onClick={handleLogout} title="Logout">
+              <LogoutIcon />
+            </IconButton>
           </Box>
         </Toolbar>
       </AppBar>
