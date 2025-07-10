@@ -3,7 +3,7 @@ import mongoose from 'mongoose'
 const { Schema } = mongoose;
 
 const locationSchema = new Schema({
-  latitude:  { type: Number, required: true },
+  latitude: { type: Number, required: true },
   longitude: { type: Number, required: true }
 }, {
   timestamps: false,

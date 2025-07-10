@@ -1,5 +1,5 @@
 // models/BloodEntry.js
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 const { Schema } = mongoose;
 
 const bloodEntrySchema = new Schema({
@@ -12,4 +12,4 @@ const bloodEntrySchema = new Schema({
   collection: 'bloodentries'
 });
 
-module.exports = mongoose.model('BloodEntry', bloodEntrySchema);
+export default mongoose.model('BloodEntry', bloodEntrySchema);
