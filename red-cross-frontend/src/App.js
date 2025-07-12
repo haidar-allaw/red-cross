@@ -26,7 +26,7 @@ export default function App() {
           <Routes>
             {/* Admin section */}
             <Route path="admin" element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>
-              {/* <Route index element={<AdminHomePage />} /> */}
+              <Route index element={<AdminHomePage />} />
               {/* <Route path="users" element={<AdminUsers />} /> */}
               <Route path="centers-approval" element={<AdminCentersApproval />} />
             </Route>
