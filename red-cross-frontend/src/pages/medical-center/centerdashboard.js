@@ -14,6 +14,7 @@ export default function CenterDashboard() {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+    const [deletingId, setDeletingId] = useState(null);
 
     // Get center ID from token
     useEffect(() => {
@@ -72,6 +73,20 @@ export default function CenterDashboard() {
             setError('Failed to save changes');
         } finally {
             setSaving(false);
+        }
+    };
+
+    // Cancel donation request handler
+    const handleCancelRequest = async (id) => {
+        if (!window.confirm('Are you sure you want to cancel this donation request?')) return;
+        setDeletingId(id);
+        try {
+            await axios.delete(`http://localhost:4000/api/blood/${id}`);
+            setDonationRequests((prev) => prev.filter((req) => req._id !== id));
+        } catch (err) {
+            alert('Failed to cancel the request.');
+        } finally {
+            setDeletingId(null);
         }
     };
 
@@ -231,9 +246,10 @@ export default function CenterDashboard() {
                                                         variant="outlined"
                                                         color="error"
                                                         size="small"
-                                                        onClick={() => console.log('Cancel clicked')}
+                                                        onClick={() => handleCancelRequest(request._id)}
+                                                        disabled={deletingId === request._id}
                                                     >
-                                                        Cancel
+                                                        {deletingId === request._id ? 'Cancelling...' : 'Cancel'}
                                                     </Button>
                                                 </Box>
                                             </Grid>
