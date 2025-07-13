@@ -12,6 +12,8 @@ import SignUpPage from "./pages/signup";
 import CenterDashboard from "./pages/medical-center/centerdashboard";
 import AdminLayout from "./components/AdminLayout";
 import AdminHomePage from "./pages/admin/AdminHomePage";
+import AdminUserManagement from "./pages/admin/AdminUserManagement";
+import AdminBloodDonationManagement from "./pages/admin/AdminBloodDonationManagement";
 import AdminCentersApproval from "./pages/admin/AdminCentersApproval";
 import RequestBloodPage from "./pages/requestBlood";
 import { AuthProvider } from "./context/AuthContext";
@@ -27,7 +29,8 @@ export default function App() {
             {/* Admin section */}
             <Route path="admin" element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>
               <Route index element={<AdminHomePage />} />
-              {/* <Route path="users" element={<AdminUsers />} /> */}
+              <Route path="users" element={<AdminUserManagement />} />
+              <Route path="blood-donations" element={<AdminBloodDonationManagement />} />
               <Route path="centers-approval" element={<AdminCentersApproval />} />
             </Route>
 

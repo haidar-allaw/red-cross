@@ -15,6 +15,8 @@ export default function AdminNavbar() {
             <Toolbar>
                 <Box sx={{ flexGrow: 1 }}>
                     <Button component={Link} to="/admin" color="inherit" sx={{ fontWeight: 700 }}>Admin Dashboard</Button>
+                    <Button component={Link} to="/admin/users" color="inherit">User Management</Button>
+                    <Button component={Link} to="/admin/blood-donations" color="inherit">Blood Donations</Button>
                     <Button component={Link} to="/admin/centers-approval" color="inherit">Centers Approval</Button>
                 </Box>
                 <Button color="error" variant="outlined" onClick={handleLogout}>Logout</Button>

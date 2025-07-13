@@ -1,505 +1,374 @@
-// DonateBloodPage.jsx
-import React, { useState, useEffect } from 'react';
-import {
-  Box,
-  Typography,
-  TextField,
-  MenuItem,
-  Button,
-  CircularProgress,
-  Grid,
-  Container,
-  Alert,
-  Divider,
-  Card,
-  CardContent,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions
-} from '@mui/material';
-import LocalHospitalIcon from '@mui/icons-material/LocalHospital';
-import BloodtypeIcon from '@mui/icons-material/Bloodtype';
-import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
-import LocationOnIcon from '@mui/icons-material/LocationOn';
-import axios from 'axios';
+"use client"
+
+import { useState, useEffect, useRef } from "react"
+import axios from "axios"
+import "./donateBlood.css" // Custom CSS for this page
 
 export default function DonateBloodPage() {
-  const [centers, setCenters] = useState([]);
-  const [loadingCenters, setLoadingCenters] = useState(true);
+  const [centers, setCenters] = useState([])
+  const [loadingCenters, setLoadingCenters] = useState(true)
   const [form, setForm] = useState({
-    medicalCenter: '',
-    bloodtype: '',
-    units: '',
-    date: '',
-    time: '' // Add time field
-  });
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const RED = '#B71C1C';
-  const bloodTypes = ['O-', 'O+', 'A-', 'A+', 'B-', 'B+', 'AB-', 'AB+'];
-  const [requestedBloodType, setRequestedBloodType] = useState('');
-  const [filteredCenters, setFilteredCenters] = useState([]);
-  const [requestDialogOpen, setRequestDialogOpen] = useState(false);
-  const [selectedHospital, setSelectedHospital] = useState(null);
+    medicalCenter: "",
+    bloodtype: "",
+    units: "",
+    date: "",
+    time: "", // Add time field
+  })
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState("")
+  const [success, setSuccess] = useState("")
+  const bloodTypes = ["O-", "O+", "A-", "A+", "B-", "B+", "AB-", "AB+"]
+  const [requestedBloodType, setRequestedBloodType] = useState("")
+  const [filteredCenters, setFilteredCenters] = useState([])
+  const [requestDialogOpen, setRequestDialogOpen] = useState(false)
+  const [selectedHospital, setSelectedHospital] = useState(null)
+
+  const pageRef = useRef(null)
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
+
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      const rect = pageRef.current?.getBoundingClientRect()
+      if (rect) {
+        setMousePosition({
+          x: e.clientX - rect.left,
+          y: e.clientY - rect.top,
+        })
+      }
+    }
+
+    window.addEventListener("mousemove", handleMouseMove)
+    return () => window.removeEventListener("mousemove", handleMouseMove)
+  }, [])
 
   // fetch list of approved centers
   useEffect(() => {
-    setLoadingCenters(true);
-    axios.get('http://localhost:4000/api/centers')
+    setLoadingCenters(true)
+    axios
+      .get("http://localhost:4000/api/centers")
       .then(({ data }) => setCenters(data))
       .catch(() => setCenters([]))
-      .finally(() => setLoadingCenters(false));
-  }, []);
+      .finally(() => setLoadingCenters(false))
+  }, [])
 
   // Filter centers when requestedBloodType changes
   useEffect(() => {
     if (requestedBloodType) {
       setFilteredCenters(
-        centers.filter(c =>
-          Array.isArray(c.availableBloodTypes) && c.availableBloodTypes.includes(requestedBloodType)
-        )
-      );
+        centers.filter(
+          (c) => Array.isArray(c.availableBloodTypes) && c.availableBloodTypes.includes(requestedBloodType),
+        ),
+      )
     } else {
-      setFilteredCenters([]);
+      setFilteredCenters([])
     }
-  }, [requestedBloodType, centers]);
+  }, [requestedBloodType, centers])
 
-  const handleChange = (e) =>
-    setForm({ ...form, [e.target.name]: e.target.value });
+  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value })
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setSuccess('');
-    setSubmitting(true);
+    e.preventDefault()
+    setError("")
+    setSuccess("")
+    setSubmitting(true)
     try {
-      const token = localStorage.getItem('authToken');
+      const token = localStorage.getItem("authToken")
       if (!token) {
-        setError('Please login to donate blood');
-        return;
+        setError("Please login to donate blood")
+        return
       }
-
-      console.log('Submitting donation with token:', token);
-      const response = await axios.post('http://localhost:4000/api/blood/donate', {
-        medicalCenter: form.medicalCenter,
-        bloodtype: form.bloodtype,
-        unit: Number(form.units),
-        timestamp: form.date + 'T' + form.time // Combine date and time for backend
-      }, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      console.log('Donation response:', response.data);
-      setSuccess('Thank you for your donation! Your appointment has been scheduled.');
-      setForm({ medicalCenter: '', bloodtype: '', units: '', date: '', time: '' });
+      console.log("Submitting donation with token:", token)
+      const response = await axios.post(
+        "http://localhost:4000/api/blood/donate",
+        {
+          medicalCenter: form.medicalCenter,
+          bloodtype: form.bloodtype,
+          unit: Number(form.units),
+          timestamp: form.date + "T" + form.time, // Combine date and time for backend
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      )
+      console.log("Donation response:", response.data)
+      setSuccess("Thank you for your donation! Your appointment has been scheduled.")
+      setForm({ medicalCenter: "", bloodtype: "", units: "", date: "", time: "" })
     } catch (err) {
-      setError(err.response?.data?.message || 'Submission failed');
+      setError(err.response?.data?.message || "Submission failed")
     } finally {
-      setSubmitting(false);
+      setSubmitting(false)
     }
-  };
+  }
 
   const handleRequestBlood = (center) => {
-    setSelectedHospital(center);
-    setRequestDialogOpen(true);
-  };
+    setSelectedHospital(center)
+    setRequestDialogOpen(true)
+  }
+
   const handleCloseDialog = () => {
-    setRequestDialogOpen(false);
-    setSelectedHospital(null);
-  };
+    setRequestDialogOpen(false)
+    setSelectedHospital(null)
+  }
 
   if (loadingCenters) {
     return (
-      <Box
-        sx={{
-          minHeight: '80vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)'
-        }}
-      >
-        <CircularProgress size={60} sx={{ color: RED }} />
-      </Box>
-    );
+      <div className="loading-state">
+        <div className="spinner"></div>
+        <p>Loading medical centers...</p>
+      </div>
+    )
   }
 
   return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
-        py: 4
-      }}
-    >
-      <Container maxWidth="sm">
-        <Box sx={{ textAlign: 'center', mb: 4 }}>
-          <Box
-            sx={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 80,
-              height: 80,
-              borderRadius: '50%',
-              background: `linear-gradient(135deg, ${RED} 0%, #d32f2f 100%)`,
-              boxShadow: '0 8px 32px rgba(183, 28, 28, 0.3)',
-              mb: 2
+    <div ref={pageRef} className="donate-page-container">
+      {/* Animated Background */}
+      <div className="page-background">
+        <div className="gradient-overlay"></div>
+        <div
+          className="mouse-gradient"
+          style={{
+            background: `radial-gradient(circle at ${mousePosition.x}px ${mousePosition.y}px, rgba(211,47,47,0.1) 0%, transparent 50%)`,
+          }}
+        ></div>
+        {[...Array(25)].map((_, i) => (
+          <div
+            key={i}
+            className="floating-shape"
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              animationDelay: `${Math.random() * 5}s`,
+              animationDuration: `${3 + Math.random() * 4}s`,
             }}
-          >
-          </Box>
-          <Typography
-            variant="h3"
-            sx={{
-              color: RED,
-              fontWeight: 700,
-              mb: 1,
-              textShadow: '0 2px 4px rgba(0,0,0,0.1)'
-            }}
-          >
-            Donate Blood
-          </Typography>
-          <Typography
-            variant="h6"
-            sx={{
-              color: 'text.secondary',
-              fontWeight: 400,
-              maxWidth: 600,
-              mx: 'auto'
-            }}
-          >
-            Your donation can save up to three lives. Every drop counts.
-          </Typography>
-        </Box>
+          />
+        ))}
+      </div>
+
+      <div className="content-wrapper">
+        {/* Page Header */}
+        <div className="page-header">
+          <div className="icon-circle">
+            <span className="blood-drop-icon">🩸</span>
+          </div>
+          <h1 className="page-title">Donate Blood</h1>
+          <p className="page-subtitle">Your donation can save up to three lives. Every drop counts.</p>
+        </div>
 
         {/* Request Blood Section */}
-        <Card
-          sx={{
-            borderRadius: 3,
-            boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
-            overflow: 'hidden',
-            background: 'rgba(255, 255, 255, 0.95)',
-            backdropFilter: 'blur(10px)',
-            maxWidth: 500,
-            mx: 'auto',
-            mb: 4
-          }}
-        >
-          <Box
-            sx={{
-              background: `linear-gradient(135deg, ${RED} 0%, #d32f2f 100%)`,
-              py: 3,
-              px: 4,
-              color: 'white'
-            }}
-          >
-            <Typography variant="h5" sx={{ fontWeight: 600 }}>
-              Request Blood
-            </Typography>
-            <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5 }}>
-              Select the blood type you need to see available hospitals
-            </Typography>
-          </Box>
-          <CardContent sx={{ p: 4 }}>
-            <TextField
-              select
-              label="Blood Type Needed"
-              value={requestedBloodType}
-              onChange={e => setRequestedBloodType(e.target.value)}
-              fullWidth
-              size="medium"
-              sx={{ mb: 3 }}
-            >
-              <MenuItem value="">-- Select Blood Type --</MenuItem>
-              {bloodTypes.map(bt => (
-                <MenuItem key={bt} value={bt}>{bt}</MenuItem>
-              ))}
-            </TextField>
+        <div className="card-section request-blood-section">
+          <div className="card-header">
+            <h2 className="card-title">Request Blood</h2>
+            <p className="card-subtitle">Select the blood type you need to see available hospitals</p>
+          </div>
+          <div className="card-content">
+            <div className="input-group">
+              <label htmlFor="requestedBloodType" className="input-label">
+                Blood Type Needed
+              </label>
+              <div className="select-wrapper">
+                <select
+                  id="requestedBloodType"
+                  value={requestedBloodType}
+                  onChange={(e) => setRequestedBloodType(e.target.value)}
+                  className="custom-select"
+                >
+                  <option value="">-- Select Blood Type --</option>
+                  {bloodTypes.map((bt) => (
+                    <option key={bt} value={bt}>
+                      {bt}
+                    </option>
+                  ))}
+                </select>
+                <span className="select-arrow">▼</span>
+              </div>
+            </div>
+
             {requestedBloodType && (
-              filteredCenters.length > 0 ? (
-                <Box>
-                  <Typography variant="subtitle1" sx={{ mb: 2, color: RED, fontWeight: 600 }}>
-                    Hospitals with {requestedBloodType} available:
-                  </Typography>
-                  <Grid container spacing={2}>
-                    {filteredCenters.map(center => (
-                      <Grid item xs={12} key={center._id}>
-                        <Card sx={{ p: 2, display: 'flex', alignItems: 'center', boxShadow: 2, justifyContent: 'space-between' }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                            <LocalHospitalIcon sx={{ color: RED, fontSize: 32, mr: 2 }} />
-                            <Box>
-                              <Typography variant="h6">{center.name}</Typography>
-                              <Typography variant="body2" color="text.secondary">{center.address}</Typography>
-                            </Box>
-                          </Box>
-                          <Button
-                            variant="contained"
-                            color="primary"
-                            sx={{ ml: 2, bgcolor: RED, fontWeight: 600, borderRadius: 2 }}
-                            onClick={() => handleRequestBlood(center)}
-                          >
-                            Request Blood
-                          </Button>
-                        </Card>
-                      </Grid>
+              <div className="hospital-list-container">
+                <p className="hospital-list-title">Hospitals with {requestedBloodType} available:</p>
+                {filteredCenters.length > 0 ? (
+                  <div className="hospital-grid">
+                    {filteredCenters.map((center) => (
+                      <div key={center._id} className="hospital-card">
+                        <div className="hospital-info">
+                          <span className="hospital-icon">🏥</span>
+                          <div>
+                            <h3 className="hospital-name">{center.name}</h3>
+                            <p className="hospital-address">{center.address}</p>
+                          </div>
+                        </div>
+                        <button className="request-btn" onClick={() => handleRequestBlood(center)}>
+                          Request Blood
+                        </button>
+                      </div>
                     ))}
-                  </Grid>
-                </Box>
-              ) : (
-                <Alert severity="info">No hospitals currently have this blood type available.</Alert>
-              )
+                  </div>
+                ) : (
+                  <div className="info-alert">No hospitals currently have this blood type available.</div>
+                )}
+              </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        <Card
-          sx={{
-            borderRadius: 3,
-            boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
-            overflow: 'hidden',
-            background: 'rgba(255, 255, 255, 0.95)',
-            backdropFilter: 'blur(10px)',
-            maxWidth: 500,
-            mx: 'auto'
-          }}
-        >
-          <Box
-            sx={{
-              background: `linear-gradient(135deg, ${RED} 0%, #d32f2f 100%)`,
-              py: 3,
-              px: 4,
-              color: 'white'
-            }}
-          >
-            <Typography variant="h5" sx={{ fontWeight: 600 }}>
-              Donation Form
-            </Typography>
-            <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5 }}>
-              Please fill in the details below to schedule your blood donation
-            </Typography>
-          </Box>
+        {/* Donation Form Section */}
+        <div className="card-section donation-form-section">
+          <div className="card-header">
+            <h2 className="card-title">Donation Form</h2>
+            <p className="card-subtitle">Please fill in the details below to schedule your blood donation</p>
+          </div>
+          <div className="card-content">
+            {error && <div className="error-alert">{error}</div>}
+            {success && <div className="success-alert">{success}</div>}
 
-          <CardContent sx={{ p: 4 }}>
-            {error && (
-              <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
-                {error}
-              </Alert>
-            )}
-            {success && (
-              <Alert severity="success" sx={{ mb: 3, borderRadius: 2 }}>
-                {success}
-              </Alert>
-            )}
-
-            <Box component="form" onSubmit={handleSubmit}>
-              <Grid container spacing={3}>
-                {/* Left column */}
-                <Grid item xs={12} md={6}>
-                  {/* Medical Center */}
-                  <Box sx={{ position: 'relative', mb: 3 }}>
-
-                    <TextField
-                      select
+            <form onSubmit={handleSubmit} className="donation-form">
+              <div className="form-grid">
+                <div className="input-group">
+                  <label htmlFor="medicalCenter" className="input-label">
+                    Medical Center
+                  </label>
+                  <div className="select-wrapper">
+                    <select
+                      id="medicalCenter"
                       name="medicalCenter"
-                      label="Medical Center"
-                      fullWidth
-                      size="medium"
-                      required
                       value={form.medicalCenter}
                       onChange={handleChange}
-                      sx={{
-                        '& .MuiOutlinedInput-root': {
-                          pl: 5,
-                          borderRadius: 2,
-                          '&:hover fieldset': { borderColor: RED },
-                          '&.Mui-focused fieldset': { borderColor: RED },
-                        },
-                        '& .MuiInputLabel-root.Mui-focused': { color: RED },
-                      }}
-                    >
-                      {centers.map(c => (
-                        <MenuItem key={c._id} value={c._id}>
-                          {c.name}
-                        </MenuItem>
-                      ))}
-                    </TextField>
-                  </Box>
-
-                  {/* Blood Type */}
-                  <Box sx={{ position: 'relative', mb: 3 }}>
-
-                    <TextField
-                      select
-                      name="bloodtype"
-                      label="Blood Type"
-                      fullWidth
-                      size="medium"
                       required
+                      className="custom-select"
+                    >
+                      <option value="">-- Select Medical Center --</option>
+                      {centers.map((c) => (
+                        <option key={c._id} value={c._id}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                    <span className="select-arrow">▼</span>
+                  </div>
+                </div>
+
+                <div className="input-group">
+                  <label htmlFor="bloodtype" className="input-label">
+                    Blood Type
+                  </label>
+                  <div className="select-wrapper">
+                    <select
+                      id="bloodtype"
+                      name="bloodtype"
                       value={form.bloodtype}
                       onChange={handleChange}
-                      sx={{
-                        '& .MuiOutlinedInput-root': {
-                          pl: 5,
-                          borderRadius: 2,
-                          '&:hover fieldset': { borderColor: RED },
-                          '&.Mui-focused fieldset': { borderColor: RED },
-                        },
-                        '& .MuiInputLabel-root.Mui-focused': { color: RED },
-                      }}
+                      required
+                      className="custom-select"
                     >
-                      {bloodTypes.map(bt => (
-                        <MenuItem key={bt} value={bt}>
+                      <option value="">-- Select Blood Type --</option>
+                      {bloodTypes.map((bt) => (
+                        <option key={bt} value={bt}>
                           {bt}
-                        </MenuItem>
+                        </option>
                       ))}
-                    </TextField>
-                  </Box>
+                    </select>
+                    <span className="select-arrow">▼</span>
+                  </div>
+                </div>
 
-                  {/* Units */}
-                  <TextField
-                    name="units"
-                    label="Units (ml)"
+                <div className="input-group full-width">
+                  <label htmlFor="units" className="input-label">
+                    Units (ml)
+                  </label>
+                  <input
                     type="number"
-                    fullWidth
-                    size="medium"
-                    required
+                    id="units"
+                    name="units"
                     value={form.units}
                     onChange={handleChange}
-                    sx={{
-                      mb: 3,
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: 2,
-                        '&:hover fieldset': { borderColor: RED },
-                        '&.Mui-focused fieldset': { borderColor: RED },
-                      },
-                      '& .MuiInputLabel-root.Mui-focused': { color: RED },
-                    }}
-                  />
-
-                  <CalendarTodayIcon
-                    sx={{
-                      position: 'absolute',
-                      left: 12,
-                      top: 16,
-                      color: 'text.secondary',
-                      zIndex: 1
-                    }}
-                  />
-                  <TextField
-                    name="date"
-                    label="Date of Donation"
-                    type="date"
-                    fullWidth
-                    size="medium"
                     required
-                    InputLabelProps={{ shrink: true }}
+                    className="custom-input"
+                    placeholder="e.g., 450"
+                  />
+                </div>
+
+                <div className="input-group">
+                  <label htmlFor="date" className="input-label">
+                    Date of Donation
+                  </label>
+                  <input
+                    type="date"
+                    id="date"
+                    name="date"
                     value={form.date}
                     onChange={handleChange}
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        pl: 5,
-                        borderRadius: 2,
-                        '&:hover fieldset': { borderColor: RED },
-                        '&.Mui-focused fieldset': { borderColor: RED },
-                      },
-                      '& .MuiInputLabel-root.Mui-focused': { color: RED },
-                    }}
-                  />
-                  {/* Time Picker */}
-                  <TextField
-                    name="time"
-                    label="Time of Donation"
-                    type="time"
-                    fullWidth
-                    size="medium"
                     required
-                    InputLabelProps={{ shrink: true }}
+                    className="custom-input"
+                  />
+                </div>
+
+                <div className="input-group">
+                  <label htmlFor="time" className="input-label">
+                    Time of Donation
+                  </label>
+                  <input
+                    type="time"
+                    id="time"
+                    name="time"
                     value={form.time}
                     onChange={handleChange}
-                    sx={{
-                      mt: 3,
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: 2,
-                        '&:hover fieldset': { borderColor: RED },
-                        '&.Mui-focused fieldset': { borderColor: RED },
-                      },
-                      '& .MuiInputLabel-root.Mui-focused': { color: RED },
-                    }}
+                    required
+                    className="custom-input"
                   />
+                </div>
+              </div>
 
-                  {/* Divider */}
-                  <Grid item xs={12}>
-                    <Divider sx={{ my: 2 }} />
-                  </Grid>
-
-                  {/* Submit button */}
-                  <Button
-                    type="submit"
-                    variant="contained"
-                    fullWidth
-                    size="large"
-                    sx={{
-                      background: `linear-gradient(135deg, ${RED} 0%, #d32f2f 100%)`,
-                      py: 2,
-                      borderRadius: 2,
-                      fontSize: '1.1rem',
-                      fontWeight: 600,
-                      textTransform: 'none',
-                      boxShadow: '0 8px 32px rgba(183, 28, 28, 0.3)',
-                      '&:hover': {
-                        background: `linear-gradient(135deg, #d32f2f 0%, ${RED} 100%)`,
-                        boxShadow: '0 12px 40px rgba(183, 28, 28, 0.4)',
-                        transform: 'translateY(-2px)',
-                      },
-                      transition: 'all 0.3s ease',
-                    }}
-                    disabled={submitting}
-                  >
-                    {submitting ? (
-                      <CircularProgress size={24} color="inherit" />
-                    ) : (
-                      'Submit Donation'
-                    )}
-                  </Button>
-                </Grid>
-              </Grid>
-            </Box>
-          </CardContent>
-        </Card>
+              <button type="submit" className="submit-btn" disabled={submitting}>
+                {submitting ? (
+                  <span className="button-spinner"></span>
+                ) : (
+                  <>
+                    <span className="btn-icon">✅</span>
+                    Submit Donation
+                  </>
+                )}
+              </button>
+            </form>
+          </div>
+        </div>
 
         {/* Request Blood Dialog */}
-        <Dialog open={requestDialogOpen} onClose={handleCloseDialog}>
-          <DialogTitle>Request Blood</DialogTitle>
-          <DialogContent>
-            {selectedHospital && (
-              <Box>
-                <Typography variant="h6" sx={{ color: RED }}>{selectedHospital.name}</Typography>
-                <Typography variant="body2" sx={{ mb: 1 }}>{selectedHospital.address}</Typography>
-                <Typography variant="body1" sx={{ mt: 2 }}>
-                  You are requesting <b>{requestedBloodType}</b> blood from this hospital.
-                </Typography>
-                <Typography variant="body2" sx={{ mt: 2, color: 'text.secondary' }}>
-                  Please contact the hospital directly or visit for urgent needs.
-                </Typography>
-              </Box>
-            )}
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={handleCloseDialog} color="primary" variant="contained" sx={{ bgcolor: RED }}>
-              Close
-            </Button>
-          </DialogActions>
-        </Dialog>
+        {requestDialogOpen && (
+          <div className="dialog-overlay">
+            <div className="dialog-content">
+              <div className="dialog-header">
+                <h3>Request Blood</h3>
+                <button className="dialog-close-btn" onClick={handleCloseDialog}>
+                  &times;
+                </button>
+              </div>
+              <div className="dialog-body">
+                {selectedHospital && (
+                  <>
+                    <h4 className="dialog-hospital-name">{selectedHospital.name}</h4>
+                    <p className="dialog-hospital-address">{selectedHospital.address}</p>
+                    <p className="dialog-message">
+                      You are requesting <b>{requestedBloodType}</b> blood from this hospital.
+                    </p>
+                    <p className="dialog-note">Please contact the hospital directly or visit for urgent needs.</p>
+                  </>
+                )}
+              </div>
+              <div className="dialog-actions">
+                <button className="dialog-close-action-btn" onClick={handleCloseDialog}>
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
-        <Box sx={{ textAlign: 'center', mt: 4 }}>
-          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-            Thank you for making a difference in someone life
-          </Typography>
-        </Box>
-      </Container>
-    </Box>
-  );
+        <div className="page-footer-text">
+          <p>Thank you for making a difference in someone's life</p>
+        </div>
+      </div>
+    </div>
+  )
 }

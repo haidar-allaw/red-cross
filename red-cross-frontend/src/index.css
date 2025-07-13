@@ -3,6 +3,7 @@
 @tailwind utilities;
 @import "leaflet/dist/leaflet.css";
 @import "leaflet-routing-machine/dist/leaflet-routing-machine.css";
+
 /* index.css or App.css */
 html,
 body,
@@ -19,7 +20,5 @@ body,
 
 .app-main {
   flex: 1;
-  padding-left: 40px;
-  padding-right: 40px;
   /* main grows to fill available space */
 }
