@@ -76,7 +76,7 @@ export async function getUserCount(req, res) {
 export async function getUsers(req, res) {
 
   const users = await User.find()
-  res.json({users});
+  res.json({ users });
 
 }
 
@@ -94,6 +94,67 @@ export async function getUserById(req, res) {
     res.json(user);
   } catch (err) {
     console.error('Error fetching user:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+}
+
+// PUT /api/users/:id - Update a user
+export async function updateUser(req, res) {
+  const { id } = req.params;
+  const { firstname, lastname, email, phoneNumber, role, bloodtype, address } = req.body;
+
+  try {
+    // Check if email is being changed and if it's already in use
+    if (email) {
+      const existingUser = await User.findOne({ email, _id: { $ne: id } });
+      if (existingUser) {
+        return res.status(400).json({ message: 'Email already in use' });
+      }
+    }
+
+    const updateData = {};
+    if (firstname) updateData.firstname = firstname;
+    if (lastname) updateData.lastname = lastname;
+    if (email) updateData.email = email;
+    if (phoneNumber) updateData.phoneNumber = phoneNumber;
+    if (role) updateData.role = role;
+    if (bloodtype !== undefined) updateData.bloodtype = bloodtype;
+    if (address !== undefined) updateData.address = address;
+
+    const user = await User.findByIdAndUpdate(
+      id,
+      updateData,
+      { new: true, runValidators: true }
+    ).select('-password');
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json({
+      message: 'User updated successfully',
+      user
+    });
+  } catch (err) {
+    console.error('Error updating user:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+}
+
+// DELETE /api/users/:id - Delete a user
+export async function deleteUser(req, res) {
+  const { id } = req.params;
+
+  try {
+    const user = await User.findByIdAndDelete(id);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json({ message: 'User deleted successfully' });
+  } catch (err) {
+    console.error('Error deleting user:', err);
     res.status(500).json({ message: 'Server error' });
   }
 }

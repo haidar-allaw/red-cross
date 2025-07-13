@@ -253,4 +253,46 @@ export async function getBloodEntriesByCenter(req, res) {
     console.error('Error fetching center blood entries:', err);
     res.status(500).json({ message: 'Server error' });
   }
+}
+
+// GET /api/blood/hospital-donations - Get donation statistics by hospital
+export async function getHospitalDonationStats(req, res) {
+  try {
+    const hospitalStats = await BloodEntry.aggregate([
+      {
+        $lookup: {
+          from: 'medicalcenters',
+          localField: 'medicalCenter',
+          foreignField: '_id',
+          as: 'hospital'
+        }
+      },
+      {
+        $unwind: '$hospital'
+      },
+      {
+        $group: {
+          _id: '$medicalCenter',
+          hospitalName: { $first: '$hospital.name' },
+          totalDonations: { $sum: 1 },
+          uniqueDonors: { $addToSet: '$user' }
+        }
+      },
+      {
+        $project: {
+          hospitalName: 1,
+          totalDonations: 1,
+          uniqueDonors: { $size: '$uniqueDonors' }
+        }
+      },
+      {
+        $sort: { totalDonations: -1 }
+      }
+    ]);
+
+    res.json(hospitalStats);
+  } catch (err) {
+    console.error('Error fetching hospital donation stats:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
 } 
