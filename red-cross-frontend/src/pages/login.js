@@ -73,7 +73,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [role, setRole] = useState('user'); // 'user' or 'center'
   const navigate = useNavigate();
   const { login } = useAuth();
 
@@ -82,16 +81,32 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
     try {
-      let data, token;
-      if (role === 'center') {
-        const res = await axios.post(
+      // Try user login first
+      let res = await axios.post(
+        'http://localhost:4000/api/users/login',
+        { email, password }
+      );
+      let data = res.data;
+      let token = data.token;
+      login(token);
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      if (payload.role === 'admin') {
+        navigate('/admin');
+      } else if (payload.role === 'center') {
+        navigate('/center');
+      } else {
+        navigate('/');
+      }
+    } catch (errUser) {
+      // If user login fails, try center login
+      try {
+        let res = await axios.post(
           'http://localhost:4000/api/centers/login',
           { email, password }
         );
-        data = res.data;
-        token = data.token;
+        let data = res.data;
+        let token = data.token;
         login(token);
-        // Decode token to get role
         const payload = JSON.parse(atob(token.split('.')[1]));
         if (payload.role === 'center' || !payload.role) {
           navigate('/center');
@@ -100,29 +115,13 @@ export default function LoginPage() {
         } else {
           navigate('/');
         }
-      } else {
-        const res = await axios.post(
-          'http://localhost:4000/api/users/login',
-          { email, password }
+      } catch (errCenter) {
+        setError(
+          errCenter.response?.data?.message ||
+          errUser.response?.data?.message ||
+          'Login failed. Check your credentials.'
         );
-        data = res.data;
-        token = data.token;
-        login(token);
-        // Decode token to get role
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        if (payload.role === 'admin') {
-          navigate('/admin');
-        } else if (payload.role === 'center') {
-          navigate('/center');
-        } else {
-          navigate('/');
-        }
       }
-    } catch (err) {
-      setError(
-        err.response?.data?.message ||
-        'Login failed. Check your credentials.'
-      );
     } finally {
       setLoading(false);
     }
@@ -155,18 +154,6 @@ export default function LoginPage() {
         )}
 
         <Box component="form" onSubmit={handleSubmit} noValidate>
-          <FormControl component="fieldset" sx={{ mb: 2, width: '100%' }}>
-            <FormLabel component="legend" sx={{ fontSize: 15, color: '#B71C1C' }}>Login as</FormLabel>
-            <RadioGroup
-              row
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-              sx={{ justifyContent: 'center' }}
-            >
-              <FormControlLabel value="user" control={<Radio />} label="User/Admin" />
-              <FormControlLabel value="center" control={<Radio />} label="Medical Center" />
-            </RadioGroup>
-          </FormControl>
           <TextField
             label="Email Address"
             type="email"

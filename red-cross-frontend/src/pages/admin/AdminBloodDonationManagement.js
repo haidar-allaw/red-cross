@@ -5,27 +5,44 @@ import axios from "axios"
 import "./adminBloodDonation.css" // Custom CSS for this page
 
 // MUI Table Components
-import Table from "@mui/material/Table"
-import TableBody from "@mui/material/TableBody"
-import TableCell from "@mui/material/TableCell"
-import TableHead from "@mui/material/TableHead"
-import TableRow from "@mui/material/TableRow"
-import Paper from "@mui/material/Paper"
-import TablePagination from "@mui/material/TablePagination"
-
-// Google Material Icons
-import RefreshIcon from "@mui/icons-material/Refresh"
-import SearchIcon from "@mui/icons-material/Search"
-import PersonIcon from "@mui/icons-material/Person"
-import LocalHospitalIcon from "@mui/icons-material/LocalHospital"
-import VisibilityIcon from "@mui/icons-material/Visibility"
-import EditIcon from "@mui/icons-material/Edit"
-import DeleteIcon from "@mui/icons-material/Delete"
-import CloseIcon from "@mui/icons-material/Close"
-import CheckIcon from "@mui/icons-material/Check"
-import ErrorIcon from "@mui/icons-material/Error"
-import InfoIcon from "@mui/icons-material/Info"
-import WarningIcon from "@mui/icons-material/Warning" // For expired status
+import {
+  Box,
+  Paper,
+  Typography,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  IconButton,
+  Button,
+  Chip,
+  Tooltip,
+  Avatar,
+  CircularProgress,
+  TablePagination,
+  TextField,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  InputAdornment
+} from '@mui/material';
+import {
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  Visibility as ViewIcon,
+  Search as SearchIcon,
+  LocalHospital as LocalHospitalIcon,
+  Person as PersonIcon,
+  Warning as WarningIcon,
+  Close as CloseIcon,
+  Refresh as RefreshIcon,
+  Check as CheckIcon,
+  Error as ErrorIcon,
+  Info as InfoIcon
+} from '@mui/icons-material';
 
 const API = "http://localhost:4000/api"
 
@@ -151,26 +168,26 @@ export default function AdminBloodDonationManagement() {
 
     const getStatusColor = (status) => {
         const colors = {
-            scheduled: "status-warning",
-            completed: "status-success",
-            cancelled: "status-error",
-            expired: "status-default",
+            scheduled: "warning",
+            completed: "success",
+            cancelled: "error",
+            expired: "default",
         }
-        return colors[status] || "status-default"
+        return colors[status] || "default"
     }
 
     const getBloodTypeColor = (bloodtype) => {
         const colors = {
-            "O-": "blood-error",
-            "O+": "blood-warning",
-            "A-": "blood-info",
-            "A+": "blood-success",
-            "B-": "blood-secondary",
-            "B+": "blood-primary",
-            "AB-": "blood-default",
-            "AB+": "blood-error",
+            "O-": "error",
+            "O+": "warning",
+            "A-": "info",
+            "A+": "success",
+            "B-": "secondary",
+            "B+": "primary",
+            "AB-": "default",
+            "AB+": "error",
         }
-        return colors[bloodtype] || "blood-default"
+        return colors[bloodtype] || "default"
     }
 
     const isExpired = (expiryDate) => {
@@ -190,384 +207,343 @@ export default function AdminBloodDonationManagement() {
     // Removed statCards array as cards are removed
 
     return (
-        <div className="admin-page-container">
-            <div className="content-wrapper">
-                {/* Header */}
-                <div className="admin-header">
-                    <h1 className="admin-title">Blood Donation Management</h1>
-                    <button
-                        className="refresh-button"
-                        onClick={() => {
-                            fetchDonations()
-                            // fetchStats()
-                        }}
-                        disabled={loading}
-                    >
-                        <RefreshIcon className="refresh-icon" />
-                        Refresh
-                    </button>
-                </div>
+        <Box sx={{ p: 3 }}>
+            {/* Header */}
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                <Typography variant="h4" sx={{ fontWeight: 700, color: '#B71C1C' }}>
+                    Blood Donation Management
+                </Typography>
+                <Button
+                    variant="outlined"
+                    onClick={fetchDonations}
+                    disabled={loading}
+                >
+                    Refresh
+                </Button>
+            </Box>
 
-                {/* Removed Stats Cards */}
+            {/* Search Bar */}
+            <Paper sx={{ p: 2, mb: 3 }}>
+                <TextField
+                    fullWidth
+                    variant="outlined"
+                    placeholder="Search donations by blood type, hospital, donor name, or status..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    InputProps={{
+                        startAdornment: (
+                            <InputAdornment position="start">
+                                <SearchIcon />
+                            </InputAdornment>
+                        ),
+                    }}
+                />
+            </Paper>
 
-                {/* Search Bar */}
-                <div className="search-bar-container">
-                    <SearchIcon className="search-icon" />
-                    <input
-                        type="text"
-                        className="search-input"
-                        placeholder="Search donations by blood type, hospital, donor name, or status..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                </div>
-
-                {/* Donations Table */}
-                <Paper className="table-container">
-                    {loading ? (
-                        <div className="loading-table-data">
-                            <div className="spinner"></div>
-                            <p>Loading donations...</p>
-                        </div>
-                    ) : paginatedDonations.length === 0 ? (
-                        <div className="no-data-alert">No donations found.</div>
-                    ) : (
-                        <Table className="data-table">
-                            <TableHead>
+            {/* Donations Table */}
+            <Paper sx={{ width: '100%', overflow: 'hidden' }}>
+                <TableContainer>
+                    <Table stickyHeader>
+                        <TableHead>
+                            <TableRow>
+                                <TableCell>Donor</TableCell>
+                                <TableCell>Blood Type</TableCell>
+                                <TableCell>Units</TableCell>
+                                <TableCell>Hospital</TableCell>
+                                <TableCell>Status</TableCell>
+                                <TableCell>Donation Date</TableCell>
+                                <TableCell>Expiry Date</TableCell>
+                                <TableCell>Actions</TableCell>
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                            {loading ? (
                                 <TableRow>
-                                    <TableCell>Donor</TableCell>
-                                    <TableCell>Blood Type</TableCell>
-                                    <TableCell>Units</TableCell>
-                                    <TableCell>Hospital</TableCell>
-                                    <TableCell>Status</TableCell>
-                                    <TableCell>Donation Date</TableCell>
-                                    <TableCell>Expiry Date</TableCell>
-                                    <TableCell>Actions</TableCell>
+                                    <TableCell colSpan={8} align="center">
+                                        <CircularProgress />
+                                    </TableCell>
                                 </TableRow>
-                            </TableHead>
-                            <TableBody>
-                                {paginatedDonations.map((donation) => (
-                                    <TableRow key={donation._id}>
+                            ) : paginatedDonations.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={8} align="center">
+                                        <Typography variant="body1" color="text.secondary">
+                                            No donations found
+                                        </Typography>
+                                    </TableCell>
+                                </TableRow>
+                            ) : (
+                                paginatedDonations.map((donation) => (
+                                    <TableRow key={donation._id} hover>
                                         <TableCell>
-                                            <div className="donor-info">
-                                                <div className="donor-avatar">
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                                <Avatar sx={{ bgcolor: '#B71C1C' }}>
                                                     <PersonIcon />
-                                                </div>
-                                                <div>
-                                                    <div className="donor-name">
+                                                </Avatar>
+                                                <Box>
+                                                    <Typography variant="subtitle2">
                                                         {donation.user?.firstname} {donation.user?.lastname}
-                                                    </div>
-                                                    <div className="donor-email">{donation.user?.email}</div>
-                                                </div>
-                                            </div>
+                                                    </Typography>
+                                                    <Typography variant="caption" color="text.secondary">
+                                                        {donation.user?.email}
+                                                    </Typography>
+                                                </Box>
+                                            </Box>
                                         </TableCell>
                                         <TableCell>
-                                            <span className={`blood-type-chip ${getBloodTypeColor(donation.bloodtype)}`}>
-                                                {donation.bloodtype}
-                                            </span>
+                                            <Chip
+                                                label={donation.bloodtype}
+                                                color={getBloodTypeColor(donation.bloodtype)}
+                                                size="small"
+                                            />
                                         </TableCell>
                                         <TableCell>
-                                            <div className="units-text">{donation.units} units</div>
+                                            <Typography variant="body2">{donation.units} units</Typography>
                                         </TableCell>
                                         <TableCell>
-                                            <div className="hospital-cell">
-                                                <LocalHospitalIcon className="hospital-icon-small" />
-                                                <span className="hospital-name-small">{donation.medicalCenter?.name || "N/A"}</span>
-                                            </div>
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                <LocalHospitalIcon fontSize="small" color="primary" />
+                                                <Typography variant="body2">
+                                                    {donation.medicalCenter?.name || "N/A"}
+                                                </Typography>
+                                            </Box>
                                         </TableCell>
                                         <TableCell>
-                                            <span className={`status-chip ${getStatusColor(donation.status)}`}>
-                                                {donation.status === "expired" && <WarningIcon className="status-icon" />}
-                                                {donation.status}
-                                            </span>
+                                            <Chip
+                                                label={donation.status}
+                                                color={getStatusColor(donation.status)}
+                                                size="small"
+                                                icon={donation.status === "expired" ? <WarningIcon fontSize="small" /> : null}
+                                            />
                                         </TableCell>
                                         <TableCell>{formatDate(donation.timestamp)}</TableCell>
                                         <TableCell>
-                                            <span className={`expiry-date-text ${isExpired(donation.expirydate) ? "expired" : ""}`}>
+                                            <Typography variant="body2" color={isExpired(donation.expirydate) ? 'error' : 'inherit'}>
                                                 {formatDate(donation.expirydate)}
-                                                {isExpired(donation.expirydate) && <span className="expiry-tag">EXPIRED</span>}
-                                            </span>
+                                                {isExpired(donation.expirydate) && (
+                                                    <Chip label="EXPIRED" color="error" size="small" sx={{ ml: 1 }} />
+                                                )}
+                                            </Typography>
                                         </TableCell>
                                         <TableCell>
-                                            <div className="action-buttons">
-                                                <button className="action-btn view-btn" onClick={() => handleView(donation)}>
-                                                    <VisibilityIcon fontSize="small" />
-                                                </button>
-                                                <button className="action-btn edit-btn" onClick={() => handleEdit(donation)}>
-                                                    <EditIcon fontSize="small" />
-                                                </button>
-                                                <button className="action-btn delete-btn" onClick={() => handleDelete(donation)}>
-                                                    <DeleteIcon fontSize="small" />
-                                                </button>
-                                            </div>
+                                            <Box sx={{ display: 'flex', gap: 1 }}>
+                                                <Tooltip title="View Details">
+                                                    <IconButton size="small" onClick={() => handleView(donation)} color="primary">
+                                                        <ViewIcon />
+                                                    </IconButton>
+                                                </Tooltip>
+                                                <Tooltip title="Edit Donation">
+                                                    <IconButton size="small" onClick={() => handleEdit(donation)} color="warning">
+                                                        <EditIcon />
+                                                    </IconButton>
+                                                </Tooltip>
+                                                <Tooltip title="Delete Donation">
+                                                    <IconButton size="small" onClick={() => handleDelete(donation)} color="error">
+                                                        <DeleteIcon />
+                                                    </IconButton>
+                                                </Tooltip>
+                                            </Box>
                                         </TableCell>
                                     </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    )}
-                    <TablePagination
-                        component="div"
-                        count={filteredDonations.length}
-                        page={page}
-                        onPageChange={(event, newPage) => setPage(newPage)}
-                        rowsPerPage={rowsPerPage}
-                        onRowsPerPageChange={(event) => {
-                            setRowsPerPage(Number.parseInt(event.target.value, 10))
-                            setPage(0)
-                        }}
-                        rowsPerPageOptions={[5, 10, 25]}
-                        className="pagination-controls"
-                    />
-                </Paper>
+                                ))
+                            )}
+                        </TableBody>
+                    </Table>
+                </TableContainer>
+                <TablePagination
+                    rowsPerPageOptions={[5, 10, 25]}
+                    component="div"
+                    count={filteredDonations.length}
+                    rowsPerPage={rowsPerPage}
+                    page={page}
+                    onPageChange={(event, newPage) => setPage(newPage)}
+                    onRowsPerPageChange={(event) => {
+                        setRowsPerPage(parseInt(event.target.value, 10));
+                        setPage(0);
+                    }}
+                />
+            </Paper>
 
-                {/* Edit Dialog */}
-                {editDialogOpen && selectedDonation && (
-                    <div className="dialog-overlay">
-                        <div className="dialog-content">
-                            <div className="dialog-header">
-                                <h3>Edit Blood Donation</h3>
-                                <button className="dialog-close-btn" onClick={() => setEditDialogOpen(false)}>
-                                    <CloseIcon />
-                                </button>
-                            </div>
-                            <div className="dialog-body">
-                                <div className="form-group">
-                                    <label htmlFor="edit-bloodtype" className="input-label">
-                                        Blood Type
-                                    </label>
-                                    <div className="select-wrapper">
-                                        <select
-                                            id="edit-bloodtype"
-                                            value={editForm.bloodtype}
-                                            onChange={(e) => setEditForm({ ...editForm, bloodtype: e.target.value })}
-                                            className="custom-select"
-                                        >
-                                            {bloodTypes.map((type) => (
-                                                <option key={type} value={type}>
-                                                    {type}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        <span className="select-arrow">▼</span>
-                                    </div>
-                                </div>
-                                <div className="form-group">
-                                    <label htmlFor="edit-units" className="input-label">
-                                        Units
-                                    </label>
-                                    <input
-                                        id="edit-units"
-                                        type="number"
-                                        value={editForm.units}
-                                        onChange={(e) => setEditForm({ ...editForm, units: e.target.value })}
-                                        className="custom-input"
+            {/* Edit Dialog */}
+            <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="sm" fullWidth>
+                <DialogTitle>Edit Blood Donation</DialogTitle>
+                <DialogContent>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+                        <TextField
+                            label="Blood Type"
+                            select
+                            value={editForm.bloodtype}
+                            onChange={(e) => setEditForm({ ...editForm, bloodtype: e.target.value })}
+                            fullWidth
+                            SelectProps={{ native: true }}
+                        >
+                            {bloodTypes.map((type) => (
+                                <option key={type} value={type}>{type}</option>
+                            ))}
+                        </TextField>
+                        <TextField
+                            label="Units"
+                            type="number"
+                            value={editForm.units}
+                            onChange={(e) => setEditForm({ ...editForm, units: e.target.value })}
+                            fullWidth
+                        />
+                        <TextField
+                            label="Status"
+                            select
+                            value={editForm.status}
+                            onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
+                            fullWidth
+                            SelectProps={{ native: true }}
+                        >
+                            {statuses.map((status) => (
+                                <option key={status} value={status}>{status.charAt(0).toUpperCase() + status.slice(1)}</option>
+                            ))}
+                        </TextField>
+                        <TextField
+                            label="Note"
+                            value={editForm.note}
+                            onChange={(e) => setEditForm({ ...editForm, note: e.target.value })}
+                            fullWidth
+                            multiline
+                            rows={3}
+                        />
+                    </Box>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setEditDialogOpen(false)}>Cancel</Button>
+                    <Button onClick={handleEditSubmit} variant="contained" color="primary">
+                        Save Changes
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* View Dialog */}
+            <Dialog open={viewDialogOpen} onClose={() => setViewDialogOpen(false)} maxWidth="sm" fullWidth>
+                <DialogTitle>Blood Donation Details</DialogTitle>
+                <DialogContent>
+                    {selectedDonation && (
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                                <Avatar sx={{ bgcolor: '#B71C1C', width: 60, height: 60 }}>
+                                    <PersonIcon />
+                                </Avatar>
+                                <Box>
+                                    <Typography variant="h6">
+                                        {selectedDonation.user?.firstname} {selectedDonation.user?.lastname}
+                                    </Typography>
+                                    <Typography variant="body2" color="text.secondary">
+                                        Donor ID: {selectedDonation.user?._id}
+                                    </Typography>
+                                </Box>
+                            </Box>
+                            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                                <Box>
+                                    <Typography variant="subtitle2" color="text.secondary">Email</Typography>
+                                    <Typography variant="body1">{selectedDonation.user?.email}</Typography>
+                                </Box>
+                                <Box>
+                                    <Typography variant="subtitle2" color="text.secondary">Phone</Typography>
+                                    <Typography variant="body1">{selectedDonation.user?.phoneNumber || 'N/A'}</Typography>
+                                </Box>
+                                <Box>
+                                    <Typography variant="subtitle2" color="text.secondary">Blood Type</Typography>
+                                    <Chip
+                                        label={selectedDonation.bloodtype}
+                                        color={getBloodTypeColor(selectedDonation.bloodtype)}
+                                        size="small"
                                     />
-                                </div>
-                                <div className="form-group">
-                                    <label htmlFor="edit-status" className="input-label">
-                                        Status
-                                    </label>
-                                    <div className="select-wrapper">
-                                        <select
-                                            id="edit-status"
-                                            value={editForm.status}
-                                            onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
-                                            className="custom-select"
-                                        >
-                                            {statuses.map((status) => (
-                                                <option key={status} value={status}>
-                                                    {status.charAt(0).toUpperCase() + status.slice(1)}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        <span className="select-arrow">▼</span>
-                                    </div>
-                                </div>
-                                <div className="form-group">
-                                    <label htmlFor="edit-note" className="input-label">
-                                        Note
-                                    </label>
-                                    <textarea
-                                        id="edit-note"
-                                        value={editForm.note}
-                                        onChange={(e) => setEditForm({ ...editForm, note: e.target.value })}
-                                        className="custom-textarea"
-                                        rows="3"
-                                    ></textarea>
-                                </div>
-                            </div>
-                            <div className="dialog-actions">
-                                <button className="dialog-cancel-btn" onClick={() => setEditDialogOpen(false)}>
-                                    Cancel
-                                </button>
-                                <button className="dialog-confirm-btn" onClick={handleEditSubmit}>
-                                    Save Changes
-                                </button>
-                            </div>
+                                </Box>
+                                <Box>
+                                    <Typography variant="subtitle2" color="text.secondary">Units</Typography>
+                                    <Typography variant="body1">{selectedDonation.units}</Typography>
+                                </Box>
+                                <Box>
+                                    <Typography variant="subtitle2" color="text.secondary">Status</Typography>
+                                    <Chip
+                                        label={selectedDonation.status}
+                                        color={getStatusColor(selectedDonation.status)}
+                                        size="small"
+                                        icon={selectedDonation.status === "expired" ? <WarningIcon fontSize="small" /> : null}
+                                    />
+                                </Box>
+                                <Box>
+                                    <Typography variant="subtitle2" color="text.secondary">Donation Date</Typography>
+                                    <Typography variant="body1">{formatDate(selectedDonation.timestamp)}</Typography>
+                                </Box>
+                                <Box>
+                                    <Typography variant="subtitle2" color="text.secondary">Expiry Date</Typography>
+                                    <Typography variant="body1" color={isExpired(selectedDonation.expirydate) ? 'error' : 'inherit'}>
+                                        {formatDate(selectedDonation.expirydate)}
+                                        {isExpired(selectedDonation.expirydate) && (
+                                            <Chip label="EXPIRED" color="error" size="small" sx={{ ml: 1 }} />
+                                        )}
+                                    </Typography>
+                                </Box>
+                                <Box sx={{ gridColumn: '1 / -1' }}>
+                                    <Typography variant="subtitle2" color="text.secondary">Note</Typography>
+                                    <Typography variant="body1">{selectedDonation.note || 'N/A'}</Typography>
+                                </Box>
+                            </Box>
+                        </Box>
+                    )}
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setViewDialogOpen(false)}>Close</Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* Delete Confirmation Dialog */}
+            {deleteDialogOpen && selectedDonation && (
+                <div className="dialog-overlay">
+                    <div className="dialog-content">
+                        <div className="dialog-header">
+                            <h3>Confirm Delete</h3>
+                            <button className="dialog-close-btn" onClick={() => setDeleteDialogOpen(false)}>
+                                <CloseIcon />
+                            </button>
                         </div>
-                    </div>
-                )}
-
-                {/* View Dialog */}
-                {viewDialogOpen && selectedDonation && (
-                    <div className="dialog-overlay">
-                        <div className="dialog-content view-dialog">
-                            <div className="dialog-header">
-                                <h3>Blood Donation Details</h3>
-                                <button className="dialog-close-btn" onClick={() => setViewDialogOpen(false)}>
-                                    <CloseIcon />
-                                </button>
-                            </div>
-                            <div className="dialog-body">
-                                <div className="detail-section">
-                                    <h4 className="section-title">Donor Information</h4>
-                                    <div className="donor-detail-card">
-                                        <div className="donor-avatar-large">
-                                            <PersonIcon />
-                                        </div>
-                                        <div className="donor-text-details">
-                                            <div className="detail-item">
-                                                <strong>Name:</strong> {selectedDonation.user?.firstname} {selectedDonation.user?.lastname}
-                                            </div>
-                                            <div className="detail-item">
-                                                <strong>Email:</strong> {selectedDonation.user?.email}
-                                            </div>
-                                            <div className="detail-item">
-                                                <strong>Phone:</strong> {selectedDonation.user?.phoneNumber || "N/A"}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="detail-section">
-                                    <h4 className="section-title">Donation Details</h4>
-                                    <div className="details-grid">
-                                        <div className="detail-item">
-                                            <strong>Blood Type:</strong>{" "}
-                                            <span className={`blood-type-chip ${getBloodTypeColor(selectedDonation.bloodtype)}`}>
-                                                {selectedDonation.bloodtype}
-                                            </span>
-                                        </div>
-                                        <div className="detail-item">
-                                            <strong>Units:</strong> {selectedDonation.units} units
-                                        </div>
-                                        <div className="detail-item">
-                                            <strong>Status:</strong>{" "}
-                                            <span className={`status-chip ${getStatusColor(selectedDonation.status)}`}>
-                                                {selectedDonation.status === "expired" && <WarningIcon className="status-icon" />}
-                                                {selectedDonation.status}
-                                            </span>
-                                        </div>
-                                        <div className="detail-item">
-                                            <strong>Donation ID:</strong> <span className="monospace-text">{selectedDonation._id}</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="detail-section">
-                                    <h4 className="section-title">Hospital Information</h4>
-                                    <div className="hospital-detail-card">
-                                        <LocalHospitalIcon className="hospital-icon-large" />
-                                        <div className="hospital-text-details">
-                                            <div className="detail-item">
-                                                <strong>Name:</strong> {selectedDonation.medicalCenter?.name || "N/A"}
-                                            </div>
-                                            <div className="detail-item">
-                                                <strong>Address:</strong> {selectedDonation.medicalCenter?.address || "N/A"}
-                                            </div>
-                                            <div className="detail-item">
-                                                <strong>Phone:</strong> {selectedDonation.medicalCenter?.phoneNumber || "N/A"}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="detail-section">
-                                    <h4 className="section-title">Important Dates</h4>
-                                    <div className="details-grid">
-                                        <div className="detail-item">
-                                            <strong>Donation Date:</strong> {formatDate(selectedDonation.timestamp)}
-                                        </div>
-                                        <div className="detail-item">
-                                            <strong>Expiry Date:</strong>{" "}
-                                            <span className={`expiry-date-text ${isExpired(selectedDonation.expirydate) ? "expired" : ""}`}>
-                                                {formatDate(selectedDonation.expirydate)}
-                                                {isExpired(selectedDonation.expirydate) && <span className="expiry-tag">EXPIRED</span>}
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {selectedDonation.note && (
-                                    <div className="detail-section">
-                                        <h4 className="section-title">Notes</h4>
-                                        <div className="note-box">{selectedDonation.note}</div>
-                                    </div>
-                                )}
-                            </div>
-                            <div className="dialog-actions">
-                                <button className="dialog-cancel-btn" onClick={() => setViewDialogOpen(false)}>
-                                    Close
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* Delete Confirmation Dialog */}
-                {deleteDialogOpen && selectedDonation && (
-                    <div className="dialog-overlay">
-                        <div className="dialog-content">
-                            <div className="dialog-header">
-                                <h3>Confirm Delete</h3>
-                                <button className="dialog-close-btn" onClick={() => setDeleteDialogOpen(false)}>
-                                    <CloseIcon />
-                                </button>
-                            </div>
-                            <div className="dialog-body">
-                                <p className="delete-warning-text">
-                                    Are you sure you want to delete this blood donation record? This action cannot be undone.
+                        <div className="dialog-body">
+                            <p className="delete-warning-text">
+                                Are you sure you want to delete this blood donation record? This action cannot be undone.
+                            </p>
+                            <div className="delete-summary-box">
+                                <p>
+                                    <strong>Donor:</strong> {selectedDonation.user?.firstname} {selectedDonation.user?.lastname}
                                 </p>
-                                <div className="delete-summary-box">
-                                    <p>
-                                        <strong>Donor:</strong> {selectedDonation.user?.firstname} {selectedDonation.user?.lastname}
-                                    </p>
-                                    <p>
-                                        <strong>Blood Type:</strong> {selectedDonation.bloodtype} ({selectedDonation.units} units)
-                                    </p>
-                                    <p>
-                                        <strong>Hospital:</strong> {selectedDonation.medicalCenter?.name}
-                                    </p>
-                                </div>
-                            </div>
-                            <div className="dialog-actions">
-                                <button className="dialog-cancel-btn" onClick={() => setDeleteDialogOpen(false)}>
-                                    Cancel
-                                </button>
-                                <button className="dialog-delete-btn" onClick={handleDeleteConfirm}>
-                                    Delete
-                                </button>
+                                <p>
+                                    <strong>Blood Type:</strong> {selectedDonation.bloodtype} ({selectedDonation.units} units)
+                                </p>
+                                <p>
+                                    <strong>Hospital:</strong> {selectedDonation.medicalCenter?.name}
+                                </p>
                             </div>
                         </div>
+                        <div className="dialog-actions">
+                            <button className="dialog-cancel-btn" onClick={() => setDeleteDialogOpen(false)}>
+                                Cancel
+                            </button>
+                            <button className="dialog-delete-btn" onClick={handleDeleteConfirm}>
+                                Delete
+                            </button>
+                        </div>
                     </div>
-                )}
+                </div>
+            )}
 
-                {/* Snackbar */}
-                {snackbar.open && (
-                    <div className={`snackbar ${snackbar.severity}`}>
-                        <div className="snackbar-content">
-                            {snackbar.severity === "success" && <CheckIcon />}
-                            {snackbar.severity === "error" && <ErrorIcon />}
-                            {snackbar.severity === "info" && <InfoIcon />}
-                            {snackbar.message}
-                        </div>
-                        <button className="snackbar-close-btn" onClick={() => setSnackbar({ ...snackbar, open: false })}>
-                            <CloseIcon />
-                        </button>
+            {/* Snackbar */}
+            {snackbar.open && (
+                <div className={`snackbar ${snackbar.severity}`}>
+                    <div className="snackbar-content">
+                        {snackbar.severity === "success" && <CheckIcon />}
+                        {snackbar.severity === "error" && <ErrorIcon />}
+                        {snackbar.severity === "info" && <InfoIcon />}
+                        {snackbar.message}
                     </div>
-                )}
-            </div>
-        </div>
-    )
+                    <button className="snackbar-close-btn" onClick={() => setSnackbar({ ...snackbar, open: false })}>
+                        <CloseIcon />
+                    </button>
+                </div>
+            )}
+        </Box>
+    );
 }

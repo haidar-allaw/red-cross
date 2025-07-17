@@ -24,6 +24,7 @@ import PendingActionsIcon from '@mui/icons-material/PendingActions';
 import PeopleIcon from '@mui/icons-material/People';
 import BloodtypeIcon from '@mui/icons-material/Bloodtype';
 import LogoutIcon from '@mui/icons-material/Logout';
+import AssignmentIcon from '@mui/icons-material/Assignment';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -68,6 +69,12 @@ export default function AdminLayout() {
       icon: <BloodtypeIcon />,
       to: '/admin/blood-donations',
       description: 'View blood donations'
+    },
+    {
+      label: 'Blood Requests',
+      icon: <AssignmentIcon />,
+      to: '/admin/blood-requests',
+      description: 'View blood requests'
     }
   ];
 

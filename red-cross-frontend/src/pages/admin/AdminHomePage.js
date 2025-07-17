@@ -29,14 +29,41 @@ import NotificationsIcon   from '@mui/icons-material/Notifications';
 import CalendarTodayIcon   from '@mui/icons-material/CalendarToday';
 import PeopleIcon          from '@mui/icons-material/People';
 import axios from 'axios';
+import RedCrossIcon from '../../assets/redCrossIcon.png'; // Make sure this path is correct
+import { useNavigate } from 'react-router-dom';
 
 const API = 'http://localhost:4000/api';
 
 export default function AdminHomePage() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [animateStats, setAnimateStats] = useState({ users: 0, centers: 0, pendingApprovals: 0, donations: 0 });
   const theme = useTheme();
   const isSmall = useMediaQuery(theme.breakpoints.down('sm'));
+  const navigate = useNavigate();
+
+  // Animated count-up effect for stats
+  useEffect(() => {
+    if (!stats) return;
+    const keys = ['users', 'centers', 'pendingApprovals', 'donations'];
+    const intervals = {};
+    keys.forEach((key) => {
+      let start = 0;
+      let end = stats[key] || 0;
+      if (typeof end !== 'number') end = parseInt(end) || 0;
+      const step = Math.ceil(end / 30) || 1;
+      intervals[key] = setInterval(() => {
+        setAnimateStats((prev) => {
+          const next = { ...prev };
+          if (next[key] < end) {
+            next[key] = Math.min(next[key] + step, end);
+          }
+          return next;
+        });
+      }, 20);
+    });
+    return () => keys.forEach((key) => clearInterval(intervals[key]));
+  }, [stats]);
 
   const fetchStats = async () => {
     setLoading(true);
@@ -50,6 +77,7 @@ export default function AdminHomePage() {
         users: usersRes.data.count,
         centers: centersRes.data.count,
         pendingApprovals: pendingRes.data.count,
+        donations: 156 // Placeholder, replace with real API if available
       });
     } catch (err) {
       console.error(err);
@@ -66,40 +94,40 @@ export default function AdminHomePage() {
     ? [
         {
           label: 'Total Users',
-          value: stats.users,
-          icon: <PeopleIcon />,
+          value: animateStats.users,
+          icon: <PeopleIcon fontSize="large" />,
           color: '#2196F3',
           gradient: 'linear-gradient(135deg, #2196F3 0%, #1976D2 100%)',
           change: '+12%',
-          changeType: 'positive'
+          changeType: 'positive',
         },
         {
           label: 'Medical Centers',
-          value: stats.centers,
-          icon: <LocalHospitalIcon />,
+          value: animateStats.centers,
+          icon: <LocalHospitalIcon fontSize="large" />,
           color: '#4CAF50',
           gradient: 'linear-gradient(135deg, #4CAF50 0%, #388E3C 100%)',
           change: '+5%',
-          changeType: 'positive'
+          changeType: 'positive',
         },
         {
           label: 'Pending Approvals',
-          value: stats.pendingApprovals,
-          icon: <PendingActionsIcon />,
+          value: animateStats.pendingApprovals,
+          icon: <PendingActionsIcon fontSize="large" />,
           color: '#FF9800',
           gradient: 'linear-gradient(135deg, #FF9800 0%, #F57C00 100%)',
           change: '-3%',
-          changeType: 'negative'
+          changeType: 'negative',
         },
         {
           label: 'Blood Donations',
-          value: '156',
-          icon: <BloodtypeIcon />,
+          value: animateStats.donations,
+          icon: <BloodtypeIcon fontSize="large" />,
           color: '#B71C1C',
           gradient: 'linear-gradient(135deg, #B71C1C 0%, #d32f2f 100%)',
           change: '+23%',
-          changeType: 'positive'
-        }
+          changeType: 'positive',
+        },
       ]
     : [];
 
@@ -132,24 +160,33 @@ export default function AdminHomePage() {
   };
 
   return (
-    <Box sx={{ p: isSmall ? 2 : 3 }}>
-      {/* Header */}
+    <Box
+      sx={{
+        p: isSmall ? 1 : 3,
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #fff 0%, #fbe9e7 100%)',
+      }}
+    >
+      {/* Header with logo/avatar */}
       <Box sx={{ mb: 4 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-          <Box>
-            <Typography variant="h4" sx={{ fontWeight: 700, color: '#B71C1C', mb: 1 }}>
-              Welcome back, Admin!
-            </Typography>
-            <Typography variant="body1" color="text.secondary">
-              Here's what's happening with your Red Cross system today
-            </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Avatar src={RedCrossIcon} sx={{ width: 56, height: 56, bgcolor: '#fff', boxShadow: 2, mr: 2 }} />
+            <Box>
+              <Typography variant="h4" sx={{ fontWeight: 800, color: '#B71C1C', mb: 0.5, fontFamily: 'Montserrat, sans-serif' }}>
+                Welcome back, Admin!
+              </Typography>
+              <Typography variant="body1" color="text.secondary">
+                Here's what's happening with your Red Cross system today
+              </Typography>
+            </Box>
           </Box>
           <Button
             variant="outlined"
             startIcon={<RefreshIcon />}
             onClick={fetchStats}
             disabled={loading}
-            sx={{ borderRadius: 2 }}
+            sx={{ borderRadius: 2, fontWeight: 700 }}
           >
             Refresh
           </Button>
@@ -161,7 +198,7 @@ export default function AdminHomePage() {
         {loading
           ? Array.from({ length: 4 }).map((_, i) => (
               <Grid item xs={12} sm={6} md={3} key={i}>
-                <Card sx={{ borderRadius: 3, height: 160 }}>
+                <Card sx={{ borderRadius: 4, height: 170, boxShadow: 3, background: '#f5f5f5' }}>
                   <CardContent sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
                     <CircularProgress />
                   </CardContent>
@@ -172,24 +209,26 @@ export default function AdminHomePage() {
               <Grid item xs={12} sm={6} md={3} key={card.label}>
                 <Card
                   sx={{
-                    borderRadius: 3,
+                    borderRadius: 4,
                     background: card.gradient,
                     color: 'white',
-                    height: 160,
-                    transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+                    height: 170,
+                    boxShadow: '0 8px 32px rgba(183,28,28,0.12)',
+                    transition: 'transform 0.3s, box-shadow 0.3s',
                     '&:hover': {
-                      transform: 'translateY(-8px)',
-                      boxShadow: '0 20px 40px rgba(0,0,0,0.2)'
-                    }
+                      transform: 'translateY(-8px) scale(1.03)',
+                      boxShadow: '0 20px 40px rgba(183,28,28,0.18)',
+                    },
                   }}
                 >
                   <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <Avatar
                         sx={{
-                          bgcolor: 'rgba(255,255,255,0.2)',
-                          width: 50,
-                          height: 50
+                          bgcolor: 'rgba(255,255,255,0.18)',
+                          width: 56,
+                          height: 56,
+                          boxShadow: 2,
                         }}
                       >
                         {card.icon}
@@ -200,15 +239,16 @@ export default function AdminHomePage() {
                         sx={{
                           bgcolor: card.changeType === 'positive' ? 'rgba(76, 175, 80, 0.9)' : 'rgba(244, 67, 54, 0.9)',
                           color: 'white',
-                          fontWeight: 600
+                          fontWeight: 600,
+                          fontSize: 16,
                         }}
                       />
                     </Box>
                     <Box>
-                      <Typography variant="h3" sx={{ fontWeight: 700, mb: 1 }}>
+                      <Typography variant="h3" sx={{ fontWeight: 800, mb: 1, fontFamily: 'Montserrat, sans-serif', letterSpacing: 1 }}>
                         {card.value}
                       </Typography>
-                      <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                      <Typography variant="body2" sx={{ opacity: 0.93, fontWeight: 500, fontSize: 18 }}>
                         {card.label}
                       </Typography>
                     </Box>
@@ -222,9 +262,9 @@ export default function AdminHomePage() {
       <Grid container spacing={3}>
         {/* Quick Actions */}
         <Grid item xs={12} md={4}>
-          <Card sx={{ borderRadius: 3, height: 'fit-content' }}>
+          <Card sx={{ borderRadius: 4, height: 'fit-content', boxShadow: 2 }}>
             <CardContent>
-              <Typography variant="h6" sx={{ fontWeight: 600, mb: 3, color: '#B71C1C' }}>
+              <Typography variant="h6" sx={{ fontWeight: 700, mb: 3, color: '#B71C1C', fontFamily: 'Montserrat, sans-serif' }}>
                 Quick Actions
               </Typography>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -235,8 +275,11 @@ export default function AdminHomePage() {
                     bgcolor: '#2196F3',
                     borderRadius: 2,
                     py: 1.5,
-                    '&:hover': { bgcolor: '#1976D2' }
+                    fontWeight: 700,
+                    fontSize: 16,
+                    '&:hover': { bgcolor: '#1976D2' },
                   }}
+                  onClick={() => navigate('/admin/users')}
                 >
                   Manage Users
                 </Button>
@@ -247,8 +290,11 @@ export default function AdminHomePage() {
                     bgcolor: '#4CAF50',
                     borderRadius: 2,
                     py: 1.5,
-                    '&:hover': { bgcolor: '#388E3C' }
+                    fontWeight: 700,
+                    fontSize: 16,
+                    '&:hover': { bgcolor: '#388E3C' },
                   }}
+                  onClick={() => navigate('/admin/centers-approval')}
                 >
                   Approve Centers
                 </Button>
@@ -259,8 +305,11 @@ export default function AdminHomePage() {
                     bgcolor: '#B71C1C',
                     borderRadius: 2,
                     py: 1.5,
-                    '&:hover': { bgcolor: '#d32f2f' }
+                    fontWeight: 700,
+                    fontSize: 16,
+                    '&:hover': { bgcolor: '#d32f2f' },
                   }}
+                  onClick={() => navigate('/admin/blood-donations')}
                 >
                   View Donations
                 </Button>
@@ -271,9 +320,9 @@ export default function AdminHomePage() {
 
         {/* Recent Activity */}
         <Grid item xs={12} md={8}>
-          <Card sx={{ borderRadius: 3 }}>
+          <Card sx={{ borderRadius: 4, boxShadow: 2 }}>
             <CardContent>
-              <Typography variant="h6" sx={{ fontWeight: 600, mb: 3, color: '#B71C1C' }}>
+              <Typography variant="h6" sx={{ fontWeight: 700, mb: 3, color: '#B71C1C', fontFamily: 'Montserrat, sans-serif' }}>
                 Recent Activity
               </Typography>
               <List>
@@ -281,15 +330,15 @@ export default function AdminHomePage() {
                   <React.Fragment key={activity.id}>
                     <ListItem sx={{ px: 0 }}>
                       <ListItemAvatar>
-                        <Avatar sx={{ bgcolor: getActivityColor(activity.type), width: 35, height: 35 }}>
+                        <Avatar sx={{ bgcolor: getActivityColor(activity.type), width: 40, height: 40, boxShadow: 1 }}>
                           {getActivityIcon(activity.type)}
                         </Avatar>
                       </ListItemAvatar>
                       <ListItemText
                         primary={activity.action}
                         secondary={activity.time}
-                        primaryTypographyProps={{ fontWeight: 500 }}
-                        secondaryTypographyProps={{ fontSize: '0.875rem' }}
+                        primaryTypographyProps={{ fontWeight: 600, fontSize: 17 }}
+                        secondaryTypographyProps={{ fontSize: '0.95rem' }}
                       />
                     </ListItem>
                     {index < recentActivities.length - 1 && (

@@ -18,6 +18,7 @@ import AdminCentersApproval from './pages/admin/AdminCentersApproval';
 import RequestBloodPage from './pages/requestBlood';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
+import AdminBloodRequests from './pages/admin/AdminBloodRequests';
 
 export default function App() {
   return (
@@ -26,6 +27,29 @@ export default function App() {
         <Header />
         <main className="app-main">
           <Routes>
+            {/* Public section */}
+            <Route path="/" element={<HomeScreen />} />
+            <Route path="about" element={<AboutPage />} />
+            <Route path="hospitals" element={<HospitalWrapper />} />
+            <Route path="donate-blood" element={<DonateBlood />} />
+
+            {/* Protected section */}
+            <Route
+              path="/center"
+              element={
+                <ProtectedRoute>
+                  <CenterDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/request"
+              element={
+                <ProtectedRoute>
+                  <RequestBloodPage />
+                </ProtectedRoute>
+              }
+            />
             {/* Admin section */}
             <Route
               path="admin"
@@ -45,59 +69,12 @@ export default function App() {
                 path="centers-approval"
                 element={<AdminCentersApproval />}
               />
+              <Route
+                path="blood-requests"
+                element={<AdminBloodRequests />}
+              />
             </Route>
 
-            {/* Protected section */}
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <HomeScreen />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="donate-blood"
-              element={
-                <ProtectedRoute>
-                  <DonateBlood />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="hospitals"
-              element={
-                <ProtectedRoute>
-                  <HospitalWrapper />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="about"
-              element={
-                <ProtectedRoute>
-                  <AboutPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/center"
-              element={
-                <ProtectedRoute>
-                  <CenterDashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/request"
-              element={
-                <ProtectedRoute>
-                  <RequestBloodPage />
-                </ProtectedRoute>
-              }
-            />
-
-            {/* Public section */}
             <Route path="login" element={<LoginPage />} />
             <Route path="register" element={<SignUpPage />} />
           </Routes>
