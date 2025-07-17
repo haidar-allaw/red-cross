@@ -37,7 +37,7 @@ export default function App() {
             <Route
               path="/center"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute role="center">
                   <CenterDashboard />
                 </ProtectedRoute>
               }
@@ -54,24 +54,24 @@ export default function App() {
             <Route
               path="admin"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute role="admin">
                   <AdminLayout />
                 </ProtectedRoute>
               }
             >
               <Route index element={<AdminHomePage />} />
-              <Route path="users" element={<AdminUserManagement />} />
+              <Route path="users" element={<ProtectedRoute role="admin"><AdminUserManagement /></ProtectedRoute>} />
               <Route
                 path="blood-donations"
-                element={<AdminBloodDonationManagement />}
+                element={<ProtectedRoute role="admin"><AdminBloodDonationManagement /></ProtectedRoute>}
               />
               <Route
                 path="centers-approval"
-                element={<AdminCentersApproval />}
+                element={<ProtectedRoute role="admin"><AdminCentersApproval /></ProtectedRoute>}
               />
               <Route
                 path="blood-requests"
-                element={<AdminBloodRequests />}
+                element={<ProtectedRoute role="admin"><AdminBloodRequests /></ProtectedRoute>}
               />
             </Route>
 
