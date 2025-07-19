@@ -121,7 +121,7 @@ export default function RequestBloodPage() {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      setSuccess("Your blood request has been submitted successfully.");
+      setSuccess("Your blood request has been submitted successfully and is waiting for medical center approval. You will be notified once a decision is made.");
       setForm({
         patientName: "",
         contactPhone: "",
@@ -130,7 +130,7 @@ export default function RequestBloodPage() {
         reason: "",
       });
 
-      setTimeout(handleCloseDialog, 2000);
+      setTimeout(handleCloseDialog, 3000);
     } catch (err) {
       setError(err.response?.data?.message || "Submission failed");
     } finally {

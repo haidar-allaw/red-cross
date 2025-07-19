@@ -8,11 +8,11 @@ const bloodRequestSchema = new mongoose.Schema({
   },
   patientName: {
     type: String,
-    required: function() { return this.requestType === 'Individual'; }
+    required: function () { return this.requestType === 'Individual'; }
   },
   hospitalName: {
     type: String,
-    required: function() { return this.requestType === 'Hospital'; }
+    required: function () { return this.requestType === 'Hospital'; }
   },
   bloodType: {
     type: String,
@@ -27,6 +27,17 @@ const bloodRequestSchema = new mongoose.Schema({
   },
   contactPhone: { type: String, required: true },
   reason: { type: String },
+  status: {
+    type: String,
+    enum: ['Pending', 'Approved', 'Rejected', 'Completed'],
+    default: 'Pending'
+  },
+  approvedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'MedicalCenter'
+  },
+  approvedAt: { type: Date },
+  rejectionReason: { type: String },
   createdAt: { type: Date, default: Date.now }
 });
 

@@ -16,6 +16,7 @@ import AdminUserManagement from './pages/admin/AdminUserManagement';
 import AdminBloodDonationManagement from './pages/admin/AdminBloodDonationManagement';
 import AdminCentersApproval from './pages/admin/AdminCentersApproval';
 import RequestBloodPage from './pages/requestBlood';
+import UserBloodRequests from './pages/userBloodRequests';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminBloodRequests from './pages/admin/AdminBloodRequests';
@@ -47,6 +48,14 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <RequestBloodPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/my-requests"
+              element={
+                <ProtectedRoute>
+                  <UserBloodRequests />
                 </ProtectedRoute>
               }
             />

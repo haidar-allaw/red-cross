@@ -8,7 +8,9 @@ import {
   deleteBloodEntry,
   getBloodStats,
   getBloodEntriesByCenter,
-  getHospitalDonationStats
+  getHospitalDonationStats,
+  testBloodEntries,
+  cleanupBloodEntries
 } from "../controllers/blood.controller.js";
 
 const router = express.Router();
@@ -19,8 +21,10 @@ router.post("/donate", createBloodEntry);
 // Blood entry management endpoints
 router.get("/", getAllBloodEntries);
 router.get("/stats", getBloodStats);
+router.get("/test", testBloodEntries);
 router.get("/hospital-donations", getHospitalDonationStats);
 router.get("/center/:centerId", getBloodEntriesByCenter);
+router.delete("/cleanup", cleanupBloodEntries);
 router.get("/:id", getBloodEntryById);
 router.put("/:id", updateBloodEntry);
 router.delete("/:id", deleteBloodEntry);

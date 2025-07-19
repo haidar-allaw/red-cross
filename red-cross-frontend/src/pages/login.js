@@ -20,6 +20,7 @@ import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import axios from 'axios';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { getTokenPayload } from '../utils/jwtUtils';
 
 // Branding colors
 const RED_PRIMARY = '#B71C1C';
@@ -89,10 +90,10 @@ export default function LoginPage() {
       let data = res.data;
       let token = data.token;
       login(token);
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      if (payload.role === 'admin') {
+      const payload = getTokenPayload(token);
+      if (payload && payload.role === 'admin') {
         navigate('/admin');
-      } else if (payload.role === 'center') {
+      } else if (payload && payload.role === 'center') {
         navigate('/center');
       } else {
         navigate('/');
@@ -107,10 +108,10 @@ export default function LoginPage() {
         let data = res.data;
         let token = data.token;
         login(token);
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        if (payload.role === 'center' || !payload.role) {
+        const payload = getTokenPayload(token);
+        if (payload && (payload.role === 'center' || !payload.role)) {
           navigate('/center');
-        } else if (payload.role === 'admin') {
+        } else if (payload && payload.role === 'admin') {
           navigate('/admin');
         } else {
           navigate('/');

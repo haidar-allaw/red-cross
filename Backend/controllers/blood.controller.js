@@ -2,6 +2,11 @@
 import BloodEntry from '../models/BloodEntry.js';
 import MedicalCenter from '../models/MedicalCenter.js';
 import User from '../models/User.js';
+import jwt from 'jsonwebtoken';
+import dotenv from 'dotenv';
+
+dotenv.config();
+const JWT_SECRET = process.env.JWT_SECRET;
 
 // POST /api/blood/donate - Create a new blood donation entry
 export async function createBloodEntry(req, res) {
@@ -26,9 +31,9 @@ export async function createBloodEntry(req, res) {
 
     let userId;
     try {
-      // Decode token to get user ID (assuming JWT structure)
-      const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
-      userId = payload.id || payload.userId;
+      // Properly verify and decode the JWT token
+      const decoded = jwt.verify(token, JWT_SECRET);
+      userId = decoded.id;
 
       if (!userId) {
         return res.status(401).json({ message: 'Invalid token - user ID not found' });
@@ -43,8 +48,8 @@ export async function createBloodEntry(req, res) {
       }
       console.log('User found:', user.firstname, user.lastname);
     } catch (err) {
-      console.error('Error decoding token:', err);
-      return res.status(401).json({ message: 'Invalid token format' });
+      console.error('Error verifying token:', err);
+      return res.status(401).json({ message: 'Invalid token' });
     }
 
     // Check if medical center exists and is approved
@@ -242,12 +247,24 @@ export async function getBloodEntriesByCenter(req, res) {
 
   try {
     console.log('Fetching blood entries for center:', centerId);
+
+    // First, let's check if the center exists
+    const center = await MedicalCenter.findById(centerId);
+    if (!center) {
+      console.log('Center not found:', centerId);
+      return res.status(404).json({ message: 'Center not found' });
+    }
+    console.log('Center found:', center.name);
+
     const bloodEntries = await BloodEntry.find({ medicalCenter: centerId })
       .populate('medicalCenter', 'name address')
       .populate('user', 'firstname lastname email phoneNumber bloodtype')
       .sort({ timestamp: -1 });
 
-    console.log('Blood entries found:', bloodEntries);
+    console.log('Blood entries found:', bloodEntries.length);
+    console.log('First entry user data:', bloodEntries[0]?.user);
+    console.log('First entry full data:', JSON.stringify(bloodEntries[0], null, 2));
+
     res.json(bloodEntries);
   } catch (err) {
     console.error('Error fetching center blood entries:', err);
@@ -293,6 +310,60 @@ export async function getHospitalDonationStats(req, res) {
     res.json(hospitalStats);
   } catch (err) {
     console.error('Error fetching hospital donation stats:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+}
+
+// GET /api/blood/test - Test endpoint to check blood entries
+export async function testBloodEntries(req, res) {
+  try {
+    console.log('Testing blood entries...');
+
+    // Check total blood entries
+    const totalEntries = await BloodEntry.countDocuments();
+    console.log('Total blood entries:', totalEntries);
+
+    // Check entries with user references
+    const entriesWithUsers = await BloodEntry.find().populate('user', 'firstname lastname email');
+    console.log('Entries with users:', entriesWithUsers.length);
+
+    // Check entries without user references
+    const entriesWithoutUsers = await BloodEntry.find({ user: { $exists: false } });
+    console.log('Entries without users:', entriesWithoutUsers.length);
+
+    // Check entries with null user references
+    const entriesWithNullUsers = await BloodEntry.find({ user: null });
+    console.log('Entries with null users:', entriesWithNullUsers.length);
+
+    res.json({
+      totalEntries,
+      entriesWithUsers: entriesWithUsers.length,
+      entriesWithoutUsers: entriesWithoutUsers.length,
+      entriesWithNullUsers: entriesWithNullUsers.length,
+      sampleEntry: entriesWithUsers[0] || null
+    });
+  } catch (err) {
+    console.error('Error testing blood entries:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+}
+
+// DELETE /api/blood/cleanup - Clean up blood entries with null users
+export async function cleanupBloodEntries(req, res) {
+  try {
+    console.log('Cleaning up blood entries with null users...');
+
+    // Find and delete entries with null users
+    const result = await BloodEntry.deleteMany({ user: null });
+
+    console.log('Deleted entries with null users:', result.deletedCount);
+
+    res.json({
+      message: `Cleaned up ${result.deletedCount} blood entries with null users`,
+      deletedCount: result.deletedCount
+    });
+  } catch (err) {
+    console.error('Error cleaning up blood entries:', err);
     res.status(500).json({ message: 'Server error' });
   }
 } 

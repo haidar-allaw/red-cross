@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { getTokenPayload } from '../utils/jwtUtils';
 
 const AuthContext = createContext();
 
@@ -11,8 +12,12 @@ export function AuthProvider({ children }) {
         const token = localStorage.getItem('authToken');
         if (token) {
             try {
-                const payload = JSON.parse(atob(token.split('.')[1]));
-                setUser({ id: payload.id, role: payload.role });
+                const payload = getTokenPayload(token);
+                if (payload) {
+                    setUser({ id: payload.id, role: payload.role });
+                } else {
+                    setUser(null);
+                }
             } catch {
                 setUser(null);
             }
@@ -22,8 +27,10 @@ export function AuthProvider({ children }) {
 
     const login = (token) => {
         localStorage.setItem('authToken', token);
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        setUser({ id: payload.id, role: payload.role });
+        const payload = getTokenPayload(token);
+        if (payload) {
+            setUser({ id: payload.id, role: payload.role });
+        }
     };
 
     const logout = () => {

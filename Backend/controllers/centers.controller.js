@@ -56,10 +56,10 @@ export async function signupCenter(req, res) {
       location: locationId,
       hospitalCardImage
     });
-    const token = jwt.sign({ id: center._id }, JWT_SECRET, { expiresIn: JWT_EXPIRES });
+    const token = jwt.sign({ id: center._id, role: 'center' }, JWT_SECRET, { expiresIn: JWT_EXPIRES });
     res.status(201).json({
       token,
-      center: { id: center._id, name: center.name, email: center.email, isApproved: center.isApproved }
+      center: { id: center._id, name: center.name, email: center.email, isApproved: center.isApproved, role: 'center' }
     });
   } catch (err) {
     console.error(err);
@@ -79,10 +79,10 @@ export async function loginCenter(req, res) {
     }
     const match = await bcrypt.compare(password, center.password);
     if (!match) return res.status(401).json({ message: 'Invalid credentials' });
-    const token = jwt.sign({ id: center._id }, JWT_SECRET, { expiresIn: JWT_EXPIRES });
+    const token = jwt.sign({ id: center._id, role: 'center' }, JWT_SECRET, { expiresIn: JWT_EXPIRES });
     res.json({
       token,
-      center: { id: center._id, name: center.name, email: center.email, isApproved: center.isApproved }
+      center: { id: center._id, name: center.name, email: center.email, isApproved: center.isApproved, role: 'center' }
     });
   } catch (err) {
     console.error(err);
