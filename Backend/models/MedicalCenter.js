@@ -11,7 +11,10 @@ const medicalCenterSchema = new Schema({
   location: { type: Schema.Types.ObjectId, ref: 'Location' },
   blood: [{ type: Schema.Types.ObjectId, ref: 'BloodEntry' }],
   hospitalCardImage: { type: String }, // Path to uploaded hospital card image
-  availableBloodTypes: [{ type: String }],
+  availableBloodTypes: [{
+    type: { type: String, required: true },
+    quantity: { type: Number, required: true, min: 0, default: 0 }
+  }],
   neededBloodTypes: [{ type: String }],
 }, {
   timestamps: true,

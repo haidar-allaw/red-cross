@@ -20,6 +20,10 @@ import UserBloodRequests from './pages/userBloodRequests';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminBloodRequests from './pages/admin/AdminBloodRequests';
+import CenterAllDonations from './pages/medical-center/centerAllDonations';
+import CenterAllBloodRequests from './pages/medical-center/centerAllBloodRequests';
+import CenterAcceptedRequests from './pages/medical-center/centerAcceptedRequests';
+import CenterCanceledRequests from './pages/medical-center/centerCanceledRequests';
 
 export default function App() {
   return (
@@ -40,6 +44,38 @@ export default function App() {
               element={
                 <ProtectedRoute role="center">
                   <CenterDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/center/donations"
+              element={
+                <ProtectedRoute role="center">
+                  <CenterAllDonations />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/center/blood-requests"
+              element={
+                <ProtectedRoute role="center">
+                  <CenterAllBloodRequests />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/center/accepted-requests"
+              element={
+                <ProtectedRoute role="center">
+                  <CenterAcceptedRequests />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/center/canceled-requests"
+              element={
+                <ProtectedRoute role="center">
+                  <CenterCanceledRequests />
                 </ProtectedRoute>
               }
             />

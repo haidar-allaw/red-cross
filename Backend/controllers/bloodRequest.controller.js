@@ -1,4 +1,5 @@
 import BloodRequest from '../models/BloodRequest.js';
+import MedicalCenter from '../models/MedicalCenter.js';
 
 export async function createBloodRequest(req, res) {
   const {
@@ -33,6 +34,7 @@ export async function createBloodRequest(req, res) {
       unitsNeeded,
       urgency,
       contactPhone,
+      userEmail: req.body.userEmail,
       reason,
       status: 'Pending' // Default status
     });
@@ -84,6 +86,10 @@ export async function approveBloodRequest(req, res) {
   const { id } = req.params;
   const { centerId } = req.body;
 
+  if (!centerId) {
+    return res.status(400).json({ message: 'centerId is required' });
+  }
+
   try {
     const bloodRequest = await BloodRequest.findByIdAndUpdate(
       id,
@@ -99,13 +105,37 @@ export async function approveBloodRequest(req, res) {
       return res.status(404).json({ message: 'Blood request not found' });
     }
 
+    const center = await MedicalCenter.findById(centerId);
+    if (!center) {
+      return res.status(404).json({ message: 'Medical center not found' });
+    }
+
+    // Clean up availableBloodTypes to ensure all entries are valid
+    center.availableBloodTypes = center.availableBloodTypes
+      .filter(b => typeof b.type === 'string' && b.type && typeof b.quantity === 'number' && b.quantity >= 0)
+      .map(b => ({ type: b.type, quantity: b.quantity }));
+
+    const idx = center.availableBloodTypes.findIndex(b => b.type === bloodRequest.bloodType);
+    if (idx === -1) {
+      return res.status(400).json({ message: 'Blood type not found in center stock' });
+    }
+
+    const unitsNeeded = Number(bloodRequest.unitsNeeded);
+    if (isNaN(unitsNeeded) || unitsNeeded < 1) {
+      return res.status(400).json({ message: 'Invalid unitsNeeded in blood request' });
+    }
+
+    center.availableBloodTypes[idx].quantity = Math.max(0, center.availableBloodTypes[idx].quantity - unitsNeeded);
+
+    await center.save();
+
     res.json({
       message: 'Blood request approved successfully',
       request: bloodRequest
     });
   } catch (err) {
-    console.error('Error approving blood request:', err);
-    res.status(500).json({ message: 'Server error' });
+    console.error('Error approving blood request:', err, err?.message, err?.stack);
+    res.status(500).json({ message: 'Server error', error: err.message, stack: err.stack });
   }
 }
 
@@ -153,6 +183,19 @@ export async function getUserBloodRequests(req, res) {
     res.json(bloodRequests);
   } catch (err) {
     console.error('Error fetching user blood requests:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+}
+
+export async function deleteBloodRequest(req, res) {
+  const { id } = req.params;
+  try {
+    const deleted = await BloodRequest.findByIdAndDelete(id);
+    if (!deleted) {
+      return res.status(404).json({ message: 'Blood request not found' });
+    }
+    res.json({ message: 'Blood request deleted successfully' });
+  } catch (err) {
     res.status(500).json({ message: 'Server error' });
   }
 }

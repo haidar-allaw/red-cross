@@ -26,6 +26,7 @@ const bloodRequestSchema = new mongoose.Schema({
     enum: ['Normal', 'Urgent', 'Emergency']
   },
   contactPhone: { type: String, required: true },
+  userEmail: { type: String },
   reason: { type: String },
   status: {
     type: String,

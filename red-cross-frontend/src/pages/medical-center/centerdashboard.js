@@ -15,7 +15,8 @@ import {
     Divider,
     Chip,
     useTheme,
-    useMediaQuery
+    useMediaQuery,
+    IconButton
 } from '@mui/material';
 import {
     CalendarToday,
@@ -24,11 +25,13 @@ import {
     Bloodtype,
     LocalHospital,
     Save,
-    Refresh
+    Refresh,
 } from '@mui/icons-material';
+import CloseIcon from '@mui/icons-material/Close';
 import axios from 'axios';
 import RedCrossIcon from '../../assets/redCrossIcon.png';
 import { getTokenPayload } from '../../utils/jwtUtils';
+import ConfirmDialog from '../../components/ConfirmDialog';
 
 const bloodTypes = ['O-', 'O+', 'A-', 'A+', 'B-', 'B+', 'AB-', 'AB+'];
 
@@ -45,6 +48,80 @@ export default function CenterDashboard() {
     const [deletingId, setDeletingId] = useState(null);
     const theme = useTheme();
     const isSmall = useMediaQuery(theme.breakpoints.down('sm'));
+
+    const [dialogOpen, setDialogOpen] = useState(false);
+    const [dialogType, setDialogType] = useState(''); // 'approve', 'reject', 'delete'
+    const [dialogRequestId, setDialogRequestId] = useState(null);
+    const [dialogInput, setDialogInput] = useState('');
+    const [dialogContent, setDialogContent] = useState('');
+    const [dialogTitle, setDialogTitle] = useState('');
+    const [dialogConfirmText, setDialogConfirmText] = useState('Confirm');
+    const [dialogShowInput, setDialogShowInput] = useState(false);
+    const [dialogInputLabel, setDialogInputLabel] = useState('');
+
+    const openDialog = (type, requestId, options = {}) => {
+        setDialogType(type);
+        setDialogRequestId(requestId);
+        setDialogOpen(true);
+        setDialogInput(options.inputValue || '');
+        setDialogContent(options.content || '');
+        setDialogTitle(options.title || '');
+        setDialogConfirmText(options.confirmText || 'Confirm');
+        setDialogShowInput(!!options.showInput);
+        setDialogInputLabel(options.inputLabel || '');
+    };
+    const closeDialog = () => {
+        setDialogOpen(false);
+        setDialogInput('');
+        setDialogType('');
+        setDialogRequestId(null);
+    };
+
+    const handleDialogConfirm = async () => {
+        if (dialogType === 'approve') {
+            try {
+                const token = localStorage.getItem('authToken');
+                const payload = getTokenPayload(token);
+                if (!payload || !payload.id) throw new Error('Invalid token - no center ID found');
+                await axios.patch(`http://localhost:4000/api/bloodRequests/${dialogRequestId}/approve`, { centerId: payload.id });
+                setBloodRequests((prev) => prev.map((req) => req._id === dialogRequestId ? { ...req, status: 'Approved', approvedAt: new Date() } : req));
+                const { data: updatedCenter } = await axios.get(`http://localhost:4000/api/centers/${payload.id}`);
+                setAvailableBlood(updatedCenter.availableBloodTypes || []);
+            } catch (err) {
+                setError('Failed to approve the request.');
+            }
+        } else if (dialogType === 'reject') {
+            if (!dialogInput) return;
+            try {
+                const token = localStorage.getItem('authToken');
+                const payload = getTokenPayload(token);
+                if (!payload || !payload.id) throw new Error('Invalid token - no center ID found');
+                await axios.patch(`http://localhost:4000/api/bloodRequests/${dialogRequestId}/reject`, { centerId: payload.id, rejectionReason: dialogInput });
+                setBloodRequests((prev) => prev.map((req) => req._id === dialogRequestId ? { ...req, status: 'Rejected', approvedAt: new Date(), rejectionReason: dialogInput } : req));
+            } catch (err) {
+                setError('Failed to reject the request.');
+            }
+        } else if (dialogType === 'delete') {
+            try {
+                await axios.delete(`http://localhost:4000/api/bloodRequests/${dialogRequestId}`);
+                setBloodRequests((prev) => prev.filter((req) => req._id !== dialogRequestId));
+            } catch (err) {
+                setError('Failed to delete the request.');
+            }
+        } else if (dialogType === 'cancel') {
+            if (!dialogInput) return;
+            try {
+                const token = localStorage.getItem('authToken');
+                const payload = getTokenPayload(token);
+                if (!payload || !payload.id) throw new Error('Invalid token - no center ID found');
+                await axios.patch(`http://localhost:4000/api/bloodRequests/${dialogRequestId}/reject`, { centerId: payload.id, rejectionReason: dialogInput });
+                setBloodRequests((prev) => prev.map((req) => req._id === dialogRequestId ? { ...req, status: 'Rejected', approvedAt: new Date(), rejectionReason: dialogInput } : req));
+            } catch (err) {
+                setError('Failed to cancel the request.');
+            }
+        }
+        closeDialog();
+    };
 
     // Get center ID from token
     useEffect(() => {
@@ -126,10 +203,15 @@ export default function CenterDashboard() {
                 throw new Error('Invalid token - no center ID found');
             }
             const centerId = payload.id;
+            // Only send valid blood types with both type and quantity
+            const filteredAvailableBlood = availableBlood
+                .filter(b => typeof b.type === 'string' && b.type && typeof b.quantity === 'number' && b.quantity >= 0);
+            console.log('Filtered availableBloodTypes:', filteredAvailableBlood);
+
             await axios.patch(
                 `http://localhost:4000/api/centers/${centerId}`,
                 {
-                    availableBloodTypes: availableBlood,
+                    availableBloodTypes: filteredAvailableBlood,
                     neededBloodTypes: neededBlood
                 }
             );
@@ -156,66 +238,41 @@ export default function CenterDashboard() {
     };
 
     // Approve blood request handler
-    const handleApproveBloodRequest = async (id) => {
-        if (!window.confirm('Are you sure you want to approve this blood request?')) return;
-        try {
-            const token = localStorage.getItem('authToken');
-            const payload = getTokenPayload(token);
-            if (!payload || !payload.id) {
-                throw new Error('Invalid token - no center ID found');
-            }
-
-            await axios.patch(`http://localhost:4000/api/bloodRequests/${id}/approve`, {
-                centerId: payload.id
-            });
-
-            // Update the local state
-            setBloodRequests((prev) =>
-                prev.map((req) =>
-                    req._id === id
-                        ? { ...req, status: 'Approved', approvedAt: new Date() }
-                        : req
-                )
-            );
-
-            alert('Blood request approved successfully!');
-        } catch (err) {
-            console.error('Error approving blood request:', err);
-            alert('Failed to approve the request.');
-        }
+    const handleApproveBloodRequest = (id) => {
+        openDialog('approve', id, {
+            title: 'Approve Blood Request',
+            content: 'Are you sure you want to approve this blood request?',
+            confirmText: 'Approve'
+        });
     };
 
     // Reject blood request handler
-    const handleRejectBloodRequest = async (id) => {
-        const rejectionReason = prompt('Please provide a reason for rejection:');
-        if (!rejectionReason) return;
+    const handleRejectBloodRequest = (id) => {
+        openDialog('reject', id, {
+            title: 'Reject Blood Request',
+            content: 'Please provide a reason for rejection:',
+            confirmText: 'Reject',
+            showInput: true,
+            inputLabel: 'Rejection Reason'
+        });
+    };
 
-        try {
-            const token = localStorage.getItem('authToken');
-            const payload = getTokenPayload(token);
-            if (!payload || !payload.id) {
-                throw new Error('Invalid token - no center ID found');
-            }
+    const handleCancelBloodRequest = (id) => {
+        openDialog('cancel', id, {
+            title: 'Cancel Blood Request',
+            content: 'Please provide a reason for cancellation:',
+            confirmText: 'Cancel Request',
+            showInput: true,
+            inputLabel: 'Cancellation Reason'
+        });
+    };
 
-            await axios.patch(`http://localhost:4000/api/bloodRequests/${id}/reject`, {
-                centerId: payload.id,
-                rejectionReason
-            });
-
-            // Update the local state
-            setBloodRequests((prev) =>
-                prev.map((req) =>
-                    req._id === id
-                        ? { ...req, status: 'Rejected', approvedAt: new Date(), rejectionReason }
-                        : req
-                )
-            );
-
-            alert('Blood request rejected successfully!');
-        } catch (err) {
-            console.error('Error rejecting blood request:', err);
-            alert('Failed to reject the request.');
-        }
+    const handleDeleteBloodRequest = (id) => {
+        openDialog('delete', id, {
+            title: 'Delete Blood Request',
+            content: 'Are you sure you want to delete this blood request? This action cannot be undone.',
+            confirmText: 'Delete'
+        });
     };
 
     if (loading) return (
@@ -571,20 +628,52 @@ export default function CenterDashboard() {
                             {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
                             {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
-                            <TextField
-                                select
-                                label="Available Blood Types"
-                                value={availableBlood}
-                                onChange={handleAvailableChange}
-                                SelectProps={{ multiple: true }}
-                                fullWidth
-                                sx={{ mb: 2 }}
-                                helperText="Select all blood types you currently have"
-                            >
-                                {bloodTypes.map(bt => (
-                                    <MenuItem key={bt} value={bt}>{bt}</MenuItem>
-                                ))}
-                            </TextField>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+                                Available Blood Types & Quantities
+                            </Typography>
+                            <Box sx={{ mb: 2 }}>
+                                {bloodTypes.map((bt) => {
+                                    const found = availableBlood.find((b) => b.type === bt);
+                                    const qty = found ? found.quantity : 0;
+                                    let warning = '';
+                                    if (qty === 0) warning = 'Out of stock!';
+                                    else if (qty <= 2) warning = 'Low stock';
+                                    return (
+                                        <Box key={bt} sx={{ display: 'flex', alignItems: 'center', mb: 1, gap: 2 }}>
+                                            <Typography sx={{ minWidth: 40 }}>{bt}</Typography>
+                                            <TextField
+                                                type="number"
+                                                size="small"
+                                                label="Quantity"
+                                                value={found ? found.quantity : ''}
+                                                onChange={e => {
+                                                    const qty = parseInt(e.target.value, 10);
+                                                    setAvailableBlood((prev) => {
+                                                        const exists = prev.find((b) => b.type === bt);
+                                                        if (exists) {
+                                                            // If cleared, remove the entry
+                                                            if (e.target.value === '' || isNaN(qty)) {
+                                                                return prev.filter((b) => b.type !== bt);
+                                                            }
+                                                            return prev.map((b) => b.type === bt ? { ...b, quantity: qty } : b);
+                                                        } else {
+                                                            if (e.target.value === '' || isNaN(qty)) return prev;
+                                                            return [...prev, { type: bt, quantity: qty }];
+                                                        }
+                                                    });
+                                                }}
+                                                inputProps={{ min: 0 }}
+                                                sx={{ width: 100 }}
+                                            />
+                                            {warning && (
+                                                <Typography sx={{ color: qty === 0 ? 'error.main' : 'warning.main', fontWeight: 600, ml: 1 }}>
+                                                    {warning}
+                                                </Typography>
+                                            )}
+                                        </Box>
+                                    );
+                                })}
+                            </Box>
 
                             <TextField
                                 select
@@ -635,121 +724,130 @@ export default function CenterDashboard() {
                                     No scheduled donation requests at the moment.
                                 </Alert>
                             ) : (
-                                <Grid container spacing={2}>
-                                    {donationRequests.map((request) => (
-                                        <Grid item xs={12} key={request._id}>
-                                            <Card sx={{
-                                                border: '1px solid #e0e0e0',
-                                                borderRadius: 3,
-                                                transition: 'transform 0.2s, box-shadow 0.2s',
-                                                '&:hover': {
-                                                    transform: 'translateY(-2px)',
-                                                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                                                }
-                                            }}>
-                                                <CardContent>
-                                                    <Grid container spacing={2} alignItems="center">
-                                                        <Grid item xs={12} md={3}>
-                                                            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                                                                <Avatar sx={{ bgcolor: '#2196F3', width: 32, height: 32, mr: 1 }}>
-                                                                    <Person />
-                                                                </Avatar>
-                                                                <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                                                                    {request.user?.firstname && request.user?.lastname
-                                                                        ? `${request.user.firstname} ${request.user.lastname}`
-                                                                        : 'User Information Not Available'
-                                                                    }
+                                <>
+                                    <Grid container spacing={2}>
+                                        {donationRequests.slice(0, 3).map((request) => (
+                                            <Grid item xs={12} key={request._id}>
+                                                <Card sx={{
+                                                    border: '1px solid #e0e0e0',
+                                                    borderRadius: 3,
+                                                    transition: 'transform 0.2s, box-shadow 0.2s',
+                                                    '&:hover': {
+                                                        transform: 'translateY(-2px)',
+                                                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                                                    }
+                                                }}>
+                                                    <CardContent>
+                                                        <Grid container spacing={2} alignItems="center">
+                                                            <Grid item xs={12} md={3}>
+                                                                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                                                                    <Avatar sx={{ bgcolor: '#2196F3', width: 32, height: 32, mr: 1 }}>
+                                                                        <Person />
+                                                                    </Avatar>
+                                                                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                                                                        {request.user?.firstname && request.user?.lastname
+                                                                            ? `${request.user.firstname} ${request.user.lastname}`
+                                                                            : 'User Information Not Available'
+                                                                        }
+                                                                    </Typography>
+                                                                </Box>
+                                                                <Typography variant="body2" color="text.secondary">
+                                                                    {request.user?.email || 'Email not available'}
                                                                 </Typography>
-                                                            </Box>
-                                                            <Typography variant="body2" color="text.secondary">
-                                                                {request.user?.email || 'Email not available'}
-                                                            </Typography>
-                                                            <Typography variant="body2" color="text.secondary">
-                                                                {request.user?.phoneNumber || 'Phone not available'}
-                                                            </Typography>
-                                                        </Grid>
-
-                                                        <Grid item xs={12} md={2}>
-                                                            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                                                                <Avatar sx={{ bgcolor: '#B71C1C', width: 32, height: 32, mr: 1 }}>
-                                                                    <Bloodtype />
-                                                                </Avatar>
-                                                                <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                                                                    {request.bloodtype}
+                                                                <Typography variant="body2" color="text.secondary">
+                                                                    {request.user?.phoneNumber || 'Phone not available'}
                                                                 </Typography>
-                                                            </Box>
-                                                            <Typography variant="body2" color="text.secondary">
-                                                                {request.units} units
-                                                            </Typography>
-                                                        </Grid>
+                                                            </Grid>
 
-                                                        <Grid item xs={12} md={3}>
-                                                            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                                                                <Avatar sx={{ bgcolor: '#4CAF50', width: 32, height: 32, mr: 1 }}>
-                                                                    <CalendarToday />
-                                                                </Avatar>
-                                                                <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                                                                    {new Date(request.timestamp).toLocaleDateString()}
+                                                            <Grid item xs={12} md={2}>
+                                                                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                                                                    <Avatar sx={{ bgcolor: '#B71C1C', width: 32, height: 32, mr: 1 }}>
+                                                                        <Bloodtype />
+                                                                    </Avatar>
+                                                                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                                                                        {request.bloodtype}
+                                                                    </Typography>
+                                                                </Box>
+                                                                <Typography variant="body2" color="text.secondary">
+                                                                    {request.units} units
                                                                 </Typography>
-                                                            </Box>
-                                                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                                                <Avatar sx={{ bgcolor: '#FF9800', width: 32, height: 32, mr: 1 }}>
-                                                                    <AccessTime />
-                                                                </Avatar>
-                                                                <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                                                                    {new Date(request.timestamp).toLocaleTimeString([], {
-                                                                        hour: '2-digit',
-                                                                        minute: '2-digit'
-                                                                    })}
-                                                                </Typography>
-                                                            </Box>
-                                                        </Grid>
+                                                            </Grid>
 
-                                                        <Grid item xs={12} md={2}>
-                                                            <Chip
-                                                                label={request.status}
-                                                                sx={{
-                                                                    bgcolor: request.status === 'scheduled' ? '#1976d2' : '#666',
-                                                                    color: 'white',
-                                                                    fontWeight: 600,
-                                                                    textTransform: 'capitalize'
-                                                                }}
-                                                            />
-                                                        </Grid>
+                                                            <Grid item xs={12} md={3}>
+                                                                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                                                                    <Avatar sx={{ bgcolor: '#4CAF50', width: 32, height: 32, mr: 1 }}>
+                                                                        <CalendarToday />
+                                                                    </Avatar>
+                                                                    <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                                                                        {new Date(request.timestamp).toLocaleDateString()}
+                                                                    </Typography>
+                                                                </Box>
+                                                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                                                    <Avatar sx={{ bgcolor: '#FF9800', width: 32, height: 32, mr: 1 }}>
+                                                                        <AccessTime />
+                                                                    </Avatar>
+                                                                    <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                                                                        {new Date(request.timestamp).toLocaleTimeString([], {
+                                                                            hour: '2-digit',
+                                                                            minute: '2-digit'
+                                                                        })}
+                                                                    </Typography>
+                                                                </Box>
+                                                            </Grid>
 
-                                                        <Grid item xs={12} md={2}>
-                                                            <Box sx={{ display: 'flex', gap: 1, flexDirection: 'column' }}>
-                                                                <Button
-                                                                    variant="contained"
-                                                                    color="success"
-                                                                    size="small"
+                                                            <Grid item xs={12} md={2}>
+                                                                <Chip
+                                                                    label={request.status}
                                                                     sx={{
-                                                                        bgcolor: '#4caf50',
+                                                                        bgcolor: request.status === 'scheduled' ? '#1976d2' : '#666',
+                                                                        color: 'white',
                                                                         fontWeight: 600,
-                                                                        '&:hover': { bgcolor: '#388e3c' }
+                                                                        textTransform: 'capitalize'
                                                                     }}
-                                                                    onClick={() => console.log('Complete clicked')}
-                                                                >
-                                                                    Complete
-                                                                </Button>
-                                                                <Button
-                                                                    variant="outlined"
-                                                                    color="error"
-                                                                    size="small"
-                                                                    onClick={() => handleCancelRequest(request._id)}
-                                                                    disabled={deletingId === request._id}
-                                                                    sx={{ fontWeight: 600 }}
-                                                                >
-                                                                    {deletingId === request._id ? 'Cancelling...' : 'Cancel'}
-                                                                </Button>
-                                                            </Box>
+                                                                />
+                                                            </Grid>
+
+                                                            <Grid item xs={12} md={2}>
+                                                                <Box sx={{ display: 'flex', gap: 1, flexDirection: 'column' }}>
+                                                                    <Button
+                                                                        variant="contained"
+                                                                        color="success"
+                                                                        size="small"
+                                                                        sx={{
+                                                                            bgcolor: '#4caf50',
+                                                                            fontWeight: 600,
+                                                                            '&:hover': { bgcolor: '#388e3c' }
+                                                                        }}
+                                                                        onClick={() => console.log('Complete clicked')}
+                                                                    >
+                                                                        Complete
+                                                                    </Button>
+                                                                    <Button
+                                                                        variant="outlined"
+                                                                        color="error"
+                                                                        size="small"
+                                                                        onClick={() => handleCancelRequest(request._id)}
+                                                                        disabled={deletingId === request._id}
+                                                                        sx={{ fontWeight: 600 }}
+                                                                    >
+                                                                        {deletingId === request._id ? 'Cancelling...' : 'Cancel'}
+                                                                    </Button>
+                                                                </Box>
+                                                            </Grid>
                                                         </Grid>
-                                                    </Grid>
-                                                </CardContent>
-                                            </Card>
-                                        </Grid>
-                                    ))}
-                                </Grid>
+                                                    </CardContent>
+                                                </Card>
+                                            </Grid>
+                                        ))}
+                                    </Grid>
+                                    {donationRequests.length > 3 && (
+                                        <Box sx={{ textAlign: 'right', mt: 2 }}>
+                                            <Button variant="outlined" color="primary" onClick={() => window.location.href = '/center/donations'}>
+                                                Read More
+                                            </Button>
+                                        </Box>
+                                    )}
+                                </>
                             )}
                         </CardContent>
                     </Card>
@@ -770,121 +868,205 @@ export default function CenterDashboard() {
                                     No blood requests at the moment.
                                 </Alert>
                             ) : (
-                                <Grid container spacing={2}>
-                                    {bloodRequests.map((request) => (
-                                        <Grid item xs={12} key={request._id}>
-                                            <Card sx={{
-                                                border: '1px solid #e0e0e0',
-                                                borderRadius: 3,
-                                                transition: 'transform 0.2s, box-shadow 0.2s',
-                                                '&:hover': {
-                                                    transform: 'translateY(-2px)',
-                                                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                                                }
-                                            }}>
-                                                <CardContent>
-                                                    <Grid container spacing={2} alignItems="center">
-                                                        <Grid item xs={12} md={3}>
-                                                            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                                                                <Avatar sx={{ bgcolor: '#9C27B0', width: 32, height: 32, mr: 1 }}>
-                                                                    <Person />
-                                                                </Avatar>
-                                                                <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                                                                    {request.requestType === 'Individual' ? request.patientName : request.hospitalName}
+                                <>
+                                    <Grid container spacing={2}>
+                                        {bloodRequests.filter(req => req.status !== 'Approved' && req.status !== 'Rejected').slice(0, 3).map((request) => (
+                                            <Grid item xs={12} key={request._id}>
+                                                <Card sx={{
+                                                    border: '1px solid #e0e0e0',
+                                                    borderRadius: 3,
+                                                    transition: 'transform 0.2s, box-shadow 0.2s',
+                                                    position: 'relative',
+                                                    '&:hover': {
+                                                        transform: 'translateY(-2px)',
+                                                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                                                    }
+                                                }}>
+                                                    {(request.status === 'Approved' || request.status === 'Rejected') && (
+                                                        <IconButton
+                                                            size="small"
+                                                            aria-label="delete"
+                                                            onClick={() => handleDeleteBloodRequest(request._id)}
+                                                            sx={{
+                                                                position: 'absolute',
+                                                                top: 4,
+                                                                right: 4,
+                                                                zIndex: 2,
+                                                                bgcolor: 'rgba(255,255,255,0.8)',
+                                                                '&:hover': { bgcolor: '#f44336', color: 'white' },
+                                                                boxShadow: 1
+                                                            }}
+                                                        >
+                                                            <CloseIcon fontSize="small" />
+                                                        </IconButton>
+                                                    )}
+                                                    <CardContent>
+                                                        <Grid container spacing={2} alignItems="center">
+                                                            <Grid item xs={12} md={3}>
+                                                                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                                                                    <Avatar sx={{ bgcolor: '#9C27B0', width: 32, height: 32, mr: 1 }}>
+                                                                        <Person />
+                                                                    </Avatar>
+                                                                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                                                                        {request.requestType === 'Individual' ? request.patientName : request.hospitalName}
+                                                                    </Typography>
+                                                                </Box>
+                                                                <Typography variant="body2" color="text.secondary">
+                                                                    {request.requestType}
                                                                 </Typography>
-                                                            </Box>
-                                                            <Typography variant="body2" color="text.secondary">
-                                                                {request.requestType}
-                                                            </Typography>
-                                                            <Typography variant="body2" color="text.secondary">
-                                                                {request.contactPhone}
-                                                            </Typography>
-                                                        </Grid>
-
-                                                        <Grid item xs={12} md={2}>
-                                                            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                                                                <Avatar sx={{ bgcolor: '#B71C1C', width: 32, height: 32, mr: 1 }}>
-                                                                    <Bloodtype />
-                                                                </Avatar>
-                                                                <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                                                                    {request.bloodType}
+                                                                {request.requestType === 'Individual' && (
+                                                                    <Typography variant="body2" color="text.secondary">
+                                                                        {request.userEmail ? request.userEmail : 'No email available'}
+                                                                    </Typography>
+                                                                )}
+                                                                <Typography variant="body2" color="text.secondary">
+                                                                    {request.contactPhone}
                                                                 </Typography>
-                                                            </Box>
-                                                            <Typography variant="body2" color="text.secondary">
-                                                                {request.unitsNeeded} units needed
-                                                            </Typography>
-                                                        </Grid>
+                                                            </Grid>
 
-                                                        <Grid item xs={12} md={2}>
-                                                            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                                                                <Avatar sx={{ bgcolor: '#FF9800', width: 32, height: 32, mr: 1 }}>
-                                                                    <AccessTime />
-                                                                </Avatar>
-                                                                <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                                                                    {new Date(request.createdAt).toLocaleDateString()}
+                                                            <Grid item xs={12} md={2}>
+                                                                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                                                                    <Avatar sx={{ bgcolor: '#B71C1C', width: 32, height: 32, mr: 1 }}>
+                                                                        <Bloodtype />
+                                                                    </Avatar>
+                                                                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                                                                        {request.bloodType}
+                                                                    </Typography>
+                                                                </Box>
+                                                                <Typography variant="body2" color="text.secondary">
+                                                                    {request.unitsNeeded} units needed
                                                                 </Typography>
-                                                            </Box>
-                                                            <Typography variant="body2" color="text.secondary">
-                                                                {new Date(request.createdAt).toLocaleTimeString([], {
-                                                                    hour: '2-digit',
-                                                                    minute: '2-digit'
-                                                                })}
-                                                            </Typography>
-                                                        </Grid>
+                                                            </Grid>
 
-                                                        <Grid item xs={12} md={2}>
-                                                            <Chip
-                                                                label={request.urgency}
-                                                                sx={{
-                                                                    bgcolor: request.urgency === 'Emergency' ? '#f44336' :
-                                                                        request.urgency === 'Urgent' ? '#ff9800' : '#4caf50',
-                                                                    color: 'white',
-                                                                    fontWeight: 600,
-                                                                    textTransform: 'capitalize'
-                                                                }}
-                                                            />
-                                                        </Grid>
+                                                            <Grid item xs={12} md={2}>
+                                                                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                                                                    <Avatar sx={{ bgcolor: '#FF9800', width: 32, height: 32, mr: 1 }}>
+                                                                        <AccessTime />
+                                                                    </Avatar>
+                                                                    <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                                                                        {new Date(request.createdAt).toLocaleDateString()}
+                                                                    </Typography>
+                                                                </Box>
+                                                                <Typography variant="body2" color="text.secondary">
+                                                                    {new Date(request.createdAt).toLocaleTimeString([], {
+                                                                        hour: '2-digit',
+                                                                        minute: '2-digit'
+                                                                    })}
+                                                                </Typography>
+                                                            </Grid>
 
-                                                        <Grid item xs={12} md={3}>
-                                                            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                                                                <strong>Reason:</strong> {request.reason || 'No reason provided'}
-                                                            </Typography>
-                                                            <Box sx={{ display: 'flex', gap: 1 }}>
-                                                                <Button
-                                                                    variant="contained"
-                                                                    color="primary"
-                                                                    size="small"
+                                                            <Grid item xs={12} md={2}>
+                                                                <Chip
+                                                                    label={request.urgency}
                                                                     sx={{
-                                                                        bgcolor: '#9C27B0',
+                                                                        bgcolor: request.urgency === 'Emergency' ? '#f44336' :
+                                                                            request.urgency === 'Urgent' ? '#ff9800' : '#4caf50',
+                                                                        color: 'white',
                                                                         fontWeight: 600,
-                                                                        '&:hover': { bgcolor: '#7B1FA2' }
+                                                                        textTransform: 'capitalize'
                                                                     }}
-                                                                    onClick={() => handleApproveBloodRequest(request._id)}
-                                                                >
-                                                                    Accept
-                                                                </Button>
-                                                                <Button
-                                                                    variant="outlined"
-                                                                    color="error"
-                                                                    size="small"
-                                                                    sx={{ fontWeight: 600 }}
-                                                                    onClick={() => handleRejectBloodRequest(request._id)}
-                                                                >
-                                                                    Decline
-                                                                </Button>
-                                                            </Box>
+                                                                />
+                                                            </Grid>
+
+                                                            <Grid item xs={12} md={3}>
+                                                                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                                                                    <strong>Reason:</strong> {request.reason || 'No reason provided'}
+                                                                </Typography>
+                                                                <Box sx={{ display: 'flex', gap: 1 }}>
+                                                                    {request.status === 'Approved' ? (
+                                                                        <Button
+                                                                            variant="contained"
+                                                                            color="success"
+                                                                            size="small"
+                                                                            disabled
+                                                                            sx={{
+                                                                                bgcolor: '#4caf50',
+                                                                                fontWeight: 600,
+                                                                                textTransform: 'capitalize'
+                                                                            }}
+                                                                        >
+                                                                            Accepted
+                                                                        </Button>
+                                                                    ) : request.status === 'Rejected' ? (
+                                                                        <Button
+                                                                            variant="contained"
+                                                                            color="error"
+                                                                            size="small"
+                                                                            disabled
+                                                                            sx={{
+                                                                                bgcolor: '#f44336',
+                                                                                fontWeight: 600,
+                                                                                textTransform: 'capitalize'
+                                                                            }}
+                                                                        >
+                                                                            View
+                                                                        </Button>
+                                                                    ) : (
+                                                                        <Button
+                                                                            variant="contained"
+                                                                            color="primary"
+                                                                            size="small"
+                                                                            sx={{
+                                                                                bgcolor: '#9C27B0',
+                                                                                fontWeight: 600,
+                                                                                '&:hover': { bgcolor: '#7B1FA2' }
+                                                                            }}
+                                                                            onClick={() => handleApproveBloodRequest(request._id)}
+                                                                        >
+                                                                            Accept
+                                                                        </Button>
+                                                                    )}
+                                                                    <Button
+                                                                        variant="outlined"
+                                                                        color="error"
+                                                                        size="small"
+                                                                        sx={{ fontWeight: 600 }}
+                                                                        onClick={() => handleCancelBloodRequest(request._id)}
+                                                                        disabled={request.status === 'Rejected'}
+                                                                    >
+                                                                        {request.status === 'Rejected' ? 'Cancelled' : 'Cancel'}
+                                                                    </Button>
+                                                                </Box>
+                                                            </Grid>
+                                                            {request.status === 'Rejected' && (
+                                                                <Grid item xs={12} md={3}>
+                                                                    <Typography variant="body2" color="error" sx={{ mt: 1 }}>
+                                                                        <strong>Cancellation Reason:</strong> {request.rejectionReason}
+                                                                    </Typography>
+                                                                </Grid>
+                                                            )}
                                                         </Grid>
-                                                    </Grid>
-                                                </CardContent>
-                                            </Card>
-                                        </Grid>
-                                    ))}
-                                </Grid>
+                                                    </CardContent>
+                                                </Card>
+                                            </Grid>
+                                        ))}
+                                    </Grid>
+                                    {bloodRequests.length > 3 && (
+                                        <Box sx={{ textAlign: 'right', mt: 2 }}>
+                                            <Button variant="outlined" color="primary" onClick={() => window.location.href = '/center/blood-requests'}>
+                                                Read More
+                                            </Button>
+                                        </Box>
+                                    )}
+                                </>
                             )}
                         </CardContent>
                     </Card>
                 </Grid>
             </Grid>
+            <ConfirmDialog
+                open={dialogOpen}
+                title={dialogTitle}
+                content={dialogContent}
+                onClose={(confirmed) => {
+                    if (confirmed) handleDialogConfirm(); else closeDialog();
+                }}
+                confirmText={dialogConfirmText}
+                showInput={dialogShowInput}
+                inputLabel={dialogInputLabel}
+                inputValue={dialogInput}
+                setInputValue={setDialogInput}
+            />
         </Box>
     );
 } 

@@ -5,7 +5,8 @@ import {
     getBloodRequestsByCenter,
     approveBloodRequest,
     rejectBloodRequest,
-    getUserBloodRequests
+    getUserBloodRequests,
+    deleteBloodRequest
 } from '../controllers/bloodRequest.controller.js';
 
 const router = express.Router();
@@ -17,5 +18,6 @@ router.get('/center/:centerId', getBloodRequestsByCenter);
 router.get('/user/:userId', getUserBloodRequests);
 router.patch('/:id/approve', approveBloodRequest);
 router.patch('/:id/reject', rejectBloodRequest);
+router.delete('/:id', deleteBloodRequest);
 
 export default router;

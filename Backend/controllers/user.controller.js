@@ -159,3 +159,35 @@ export async function deleteUser(req, res) {
   }
 }
 
+// GET /api/users/:id/read-notifications - Get read notification IDs for a user
+export async function getUserReadNotifications(req, res) {
+  const { id } = req.params;
+  try {
+    const user = await User.findById(id).select('readNotifications');
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    res.json({ readNotifications: user.readNotifications || [] });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+}
+
+// POST /api/users/:id/read-notifications - Update read notification IDs for a user
+export async function updateUserReadNotifications(req, res) {
+  const { id } = req.params;
+  const { readNotifications } = req.body;
+  if (!Array.isArray(readNotifications)) {
+    return res.status(400).json({ message: 'readNotifications must be an array' });
+  }
+  try {
+    const user = await User.findByIdAndUpdate(
+      id,
+      { readNotifications },
+      { new: true, runValidators: true, select: 'readNotifications' }
+    );
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    res.json({ message: 'Read notifications updated', readNotifications: user.readNotifications });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+}
+

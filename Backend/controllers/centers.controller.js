@@ -143,7 +143,16 @@ export async function updateCenter(req, res) {
   const { id } = req.params;
   const updateFields = {};
   // Only allow updating certain fields
-  if (req.body.availableBloodTypes) updateFields.availableBloodTypes = req.body.availableBloodTypes;
+  if (req.body.availableBloodTypes) {
+    // Defensive backend filtering: only allow valid entries
+    req.body.availableBloodTypes = req.body.availableBloodTypes.filter(
+      b => typeof b.type === 'string' && b.type && typeof b.quantity === 'number' && b.quantity >= 0
+    );
+    updateFields.availableBloodTypes = req.body.availableBloodTypes.map(bt => ({
+      type: bt.type,
+      quantity: typeof bt.quantity === 'number' ? bt.quantity : 0
+    }));
+  }
   if (req.body.neededBloodTypes) updateFields.neededBloodTypes = req.body.neededBloodTypes;
   if (req.body.name) updateFields.name = req.body.name;
   if (req.body.address) updateFields.address = req.body.address;

@@ -15,6 +15,8 @@ export default function CenterNavbar() {
             <Toolbar>
                 <Box sx={{ flexGrow: 1 }}>
                     <Button component={Link} to="/center" color="inherit" sx={{ fontWeight: 700 }}>Center Dashboard</Button>
+                    <Button component={Link} to="/center/accepted-requests" color="inherit" sx={{ fontWeight: 700, ml: 2 }}>Accepted Requests</Button>
+                    <Button component={Link} to="/center/canceled-requests" color="inherit" sx={{ fontWeight: 700, ml: 2 }}>Canceled Requests</Button>
                 </Box>
                 <Button color="error" variant="outlined" onClick={handleLogout}>Logout</Button>
             </Toolbar>

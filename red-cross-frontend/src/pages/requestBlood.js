@@ -14,6 +14,7 @@ export default function RequestBloodPage() {
   const [form, setForm] = useState({
     patientName: "",
     contactPhone: "",
+    userEmail: "",
     unitsNeeded: "",
     urgency: "",
     reason: "",
@@ -59,7 +60,11 @@ export default function RequestBloodPage() {
         centers.filter(
           (c) =>
             Array.isArray(c.availableBloodTypes) &&
-            c.availableBloodTypes.includes(requestedBloodType)
+            c.availableBloodTypes.some(
+              (bt) =>
+                (bt.type === requestedBloodType || bt === requestedBloodType) &&
+                (typeof bt.quantity === 'undefined' || bt.quantity > 0)
+            )
         )
       );
     } else {
@@ -75,6 +80,7 @@ export default function RequestBloodPage() {
     setForm({
       patientName: "",
       contactPhone: "",
+      userEmail: "",
       unitsNeeded: "",
       urgency: "",
       reason: "",
@@ -112,6 +118,7 @@ export default function RequestBloodPage() {
         unitsNeeded: Number(form.unitsNeeded),
         urgency: form.urgency,
         contactPhone: form.contactPhone,
+        userEmail: form.userEmail,
         reason: form.reason,
       };
 
@@ -121,16 +128,16 @@ export default function RequestBloodPage() {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      setSuccess("Your blood request has been submitted successfully and is waiting for medical center approval. You will be notified once a decision is made.");
+      setSuccess("Your blood request has been submitted successfully and will be reviewed by a medical center within 1 minute. You will be notified once a decision is made.");
       setForm({
         patientName: "",
         contactPhone: "",
+        userEmail: "",
         unitsNeeded: "",
         urgency: "",
         reason: "",
       });
-
-      setTimeout(handleCloseDialog, 3000);
+      setTimeout(handleCloseDialog, 8000);
     } catch (err) {
       setError(err.response?.data?.message || "Submission failed");
     } finally {
@@ -278,97 +285,119 @@ export default function RequestBloodPage() {
                       {error}
                     </div>
                   )}
-                  {success && (
-                    <div className="mb-4 p-3 bg-green-100 text-green-700 rounded-lg">
+                  {success ? (
+                    <div className="mb-4 p-3 bg-green-100 text-green-700 rounded-lg text-center text-lg font-semibold">
                       {success}
                     </div>
+                  ) : (
+                    [
+                      {
+                        id: "patientName",
+                        icon: "👤",
+                        label: "Patient Name",
+                        type: "text",
+                        placeholder: "Enter patient’s full name",
+                      },
+                      {
+                        id: "userEmail",
+                        icon: "✉️",
+                        label: "Email Address",
+                        type: "email",
+                        placeholder: "Enter your email address",
+                      },
+                      {
+                        id: "contactPhone",
+                        icon: "📞",
+                        label: "Contact Phone",
+                        type: "tel",
+                        placeholder: "Enter contact number",
+                      },
+                      {
+                        id: "unitsNeeded",
+                        icon: "💧",
+                        label: "Units Needed",
+                        type: "number",
+                        placeholder: "Number of units",
+                      },
+                    ].map(({ id, icon, label, type, placeholder }) => (
+                      <div key={id} className="mb-4">
+                        <label
+                          htmlFor={id}
+                          className="flex items-center gap-2 text-sm text-gray-700 mb-1"
+                        >
+                          <span className="text-lg">{icon}</span> {label}
+                        </label>
+                        <input
+                          id={id}
+                          name={id}
+                          type={type}
+                          placeholder={placeholder}
+                          value={form[id]}
+                          onChange={handleFormChange}
+                          required
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-300"
+                          disabled={!!success}
+                        />
+                      </div>
+                    ))
                   )}
-
-                  {[
-                    {
-                      id: "patientName",
-                      icon: "👤",
-                      label: "Patient Name",
-                      type: "text",
-                      placeholder: "Enter patient’s full name",
-                    },
-                    {
-                      id: "contactPhone",
-                      icon: "📞",
-                      label: "Contact Phone",
-                      type: "tel",
-                      placeholder: "Enter contact number",
-                    },
-                    {
-                      id: "unitsNeeded",
-                      icon: "💧",
-                      label: "Units Needed",
-                      type: "number",
-                      placeholder: "Number of units",
-                    },
-                  ].map(({ id, icon, label, type, placeholder }) => (
-                    <div key={id} className="mb-4">
-                      <label
-                        htmlFor={id}
-                        className="flex items-center gap-2 text-sm text-gray-700 mb-1"
-                      >
-                        <span className="text-lg">{icon}</span> {label}
-                      </label>
-                      <input
-                        id={id}
-                        name={id}
-                        type={type}
-                        placeholder={placeholder}
-                        value={form[id]}
-                        onChange={handleFormChange}
-                        required
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-300"
-                      />
-                    </div>
-                  ))}
-
-                  <div className="mb-4">
-                    <label
-                      htmlFor="urgency"
-                      className="flex items-center gap-2 text-sm text-gray-700 mb-1"
+                  {!success && (
+                    <>
+                      <div className="mb-4">
+                        <label
+                          htmlFor="urgency"
+                          className="flex items-center gap-2 text-sm text-gray-700 mb-1"
+                        >
+                          <span className="text-lg">⚠️</span> Urgency Level
+                        </label>
+                        <select
+                          id="urgency"
+                          name="urgency"
+                          value={form.urgency}
+                          onChange={handleFormChange}
+                          required
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-300"
+                          disabled={!!success}
+                        >
+                          <option value="">Select urgency level</option>
+                          {urgencyOptions.map((u) => (
+                            <option key={u} value={u}>
+                              {u}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="mb-4">
+                        <label
+                          htmlFor="reason"
+                          className="flex items-center gap-2 text-sm text-gray-700 mb-1"
+                        >
+                          <span className="text-lg">📋</span> Medical Reason
+                        </label>
+                        <textarea
+                          id="reason"
+                          name="reason"
+                          placeholder="Brief description of medical condition or reason"
+                          value={form.reason}
+                          onChange={handleFormChange}
+                          rows={3}
+                          required
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-300"
+                          disabled={!!success}
+                        />
+                      </div>
+                    </>
+                  )}
+                  {/* Only show the submit button if not success */}
+                  {!success && (
+                    <button
+                      onClick={handleSubmit}
+                      disabled={submitting}
+                      className="px-4 py-2 rounded-lg font-semibold bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
                     >
-                      <span className="text-lg">⚠️</span> Urgency Level
-                    </label>
-                    <select
-                      id="urgency"
-                      name="urgency"
-                      value={form.urgency}
-                      onChange={handleFormChange}
-                      required
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-300"
-                    >
-                      <option value="">Select urgency level</option>
-                      {urgencyOptions.map((u) => (
-                        <option key={u} value={u}>
-                          {u}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="mb-4">
-                    <label
-                      htmlFor="reason"
-                      className="flex items-center gap-2 text-sm text-gray-700 mb-1"
-                    >
-                      <span className="text-lg">📋</span> Medical Reason
-                    </label>
-                    <textarea
-                      id="reason"
-                      name="reason"
-                      placeholder="Brief description of medical condition or reason"
-                      value={form.reason}
-                      onChange={handleFormChange}
-                      rows={3}
-                      required
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-300"
-                    />
-                  </div>
+                      {submitting ? "Submitting…" : "Submit Request"}
+                    </button>
+                  )}
                 </form>
               </div>
 
@@ -379,13 +408,6 @@ export default function RequestBloodPage() {
                   className="px-4 py-2 rounded-lg font-semibold text-gray-700 hover:bg-gray-200"
                 >
                   Cancel
-                </button>
-                <button
-                  onClick={handleSubmit}
-                  disabled={submitting}
-                  className="px-4 py-2 rounded-lg font-semibold bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
-                >
-                  {submitting ? "Submitting…" : "Submit Request"}
                 </button>
               </div>
             </div>
