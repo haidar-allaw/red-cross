@@ -1,18 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import './header.css';
-import Badge from '@mui/material/Badge';
-import IconButton from '@mui/material/IconButton';
-import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
-import axios from 'axios';
-import { getTokenPayload } from '../utils/jwtUtils';
-import Popover from '@mui/material/Popover';
-import List from '@mui/material/List';
-import ListItem from '@mui/material/ListItem';
-import ListItemText from '@mui/material/ListItemText';
-import Typography from '@mui/material/Typography';
-import Button from '@mui/material/Button';
+import Notifications from './Notifications'; // Import the new component
 
 const navLinks = [
   { label: 'Home', to: '/', icon: '🏠' },
@@ -26,33 +16,6 @@ export default function UserNavbar() {
   const navigate = useNavigate();
   const location = useLocation();
   const [navOpen, setNavOpen] = useState(false);
-  // Add this state for demo (replace with real notification count later)
-  const [notifCount, setNotifCount] = useState(0);
-  const [notifAnchorEl, setNotifAnchorEl] = useState(null);
-  const [notifications, setNotifications] = useState([]);
-  const [readNotifs, setReadNotifs] = useState([]); // store read notification IDs
-
-  useEffect(() => {
-    const fetchNotifications = async () => {
-      try {
-        const token = localStorage.getItem('authToken');
-        if (!token) return;
-        const payload = getTokenPayload(token);
-        if (!payload || !payload.id) return;
-        const { data } = await axios.get(`http://localhost:4000/api/bloodRequests/user/${payload.id}`);
-        // Only accepted/rejected requests
-        const notifs = data.filter(req => req.status === 'Approved' || req.status === 'Rejected');
-        setNotifications(notifs);
-        // Only count unread
-        setNotifCount(notifs.filter(n => !readNotifs.includes(n._id)).length);
-      } catch (err) {
-        setNotifications([]);
-        setNotifCount(0);
-      }
-    };
-    fetchNotifications();
-    // eslint-disable-next-line
-  }, [readNotifs]);
 
   const handleLogout = () => {
     logout();
@@ -61,24 +24,6 @@ export default function UserNavbar() {
   };
 
   const handleNavClick = () => setNavOpen(false);
-
-  const handleNotifBellClick = (event) => {
-    setNotifAnchorEl(event.currentTarget);
-    // Mark all as read after opening
-    setReadNotifs(notifications.map(n => n._id));
-    setNotifCount(0);
-  };
-  const handleNotifClose = () => {
-    setNotifAnchorEl(null);
-  };
-  const notifOpen = Boolean(notifAnchorEl);
-
-  const handleClearNotifications = () => {
-    setReadNotifs(notifications.map(n => n._id));
-    setNotifications([]);
-    setNotifCount(0);
-    handleNotifClose();
-  };
 
   return (
     <header className="site-header">
@@ -160,44 +105,7 @@ export default function UserNavbar() {
               </li>
             ))}
             <li>
-              <IconButton color="inherit" sx={{ ml: 1 }} onClick={handleNotifBellClick}>
-                <Badge badgeContent={notifCount} color="error">
-                  <NotificationsNoneIcon fontSize="medium" />
-                </Badge>
-              </IconButton>
-              <Popover
-                open={notifOpen}
-                anchorEl={notifAnchorEl}
-                onClose={handleNotifClose}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-                PaperProps={{ sx: { minWidth: 320, p: 1 } }}
-              >
-                <Typography sx={{ fontWeight: 700, p: 1 }}>Notifications</Typography>
-                <List dense>
-                  {notifications.length === 0 ? (
-                    <ListItem>
-                      <ListItemText primary="No notifications yet." />
-                    </ListItem>
-                  ) : notifications.map((notif) => (
-                    <ListItem key={notif._id} sx={{ bgcolor: notif.status === 'Approved' ? '#e8f5e9' : '#ffebee', borderRadius: 1, mb: 0.5 }}>
-                      <ListItemText
-                        primary={`Your request for ${notif.bloodType} was ${notif.status === 'Approved' ? 'accepted' : 'rejected'}.`}
-                        secondary={
-                          notif.status === 'Rejected' && notif.rejectionReason
-                            ? `Reason: ${notif.rejectionReason}`
-                            : `Date: ${new Date(notif.approvedAt).toLocaleDateString()}`
-                        }
-                      />
-                    </ListItem>
-                  ))}
-                </List>
-                {notifications.length > 0 && (
-                  <Button fullWidth color="error" onClick={handleClearNotifications} sx={{ mt: 1 }}>
-                    Clear All
-                  </Button>
-                )}
-              </Popover>
+              <Notifications />
             </li>
             <li className="header-cta">
               <button
@@ -267,44 +175,7 @@ export default function UserNavbar() {
               </li>
             ))}
             <li>
-              <IconButton color="inherit" sx={{ ml: 1 }} onClick={handleNotifBellClick}>
-                <Badge badgeContent={notifCount} color="error">
-                  <NotificationsNoneIcon fontSize="medium" />
-                </Badge>
-              </IconButton>
-              <Popover
-                open={notifOpen}
-                anchorEl={notifAnchorEl}
-                onClose={handleNotifClose}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-                PaperProps={{ sx: { minWidth: 320, p: 1 } }}
-              >
-                <Typography sx={{ fontWeight: 700, p: 1 }}>Notifications</Typography>
-                <List dense>
-                  {notifications.length === 0 ? (
-                    <ListItem>
-                      <ListItemText primary="No notifications yet." />
-                    </ListItem>
-                  ) : notifications.map((notif) => (
-                    <ListItem key={notif._id} sx={{ bgcolor: notif.status === 'Approved' ? '#e8f5e9' : '#ffebee', borderRadius: 1, mb: 0.5 }}>
-                      <ListItemText
-                        primary={`Your request for ${notif.bloodType} was ${notif.status === 'Approved' ? 'accepted' : 'rejected'}.`}
-                        secondary={
-                          notif.status === 'Rejected' && notif.rejectionReason
-                            ? `Reason: ${notif.rejectionReason}`
-                            : `Date: ${new Date(notif.approvedAt).toLocaleDateString()}`
-                        }
-                      />
-                    </ListItem>
-                  ))}
-                </List>
-                {notifications.length > 0 && (
-                  <Button fullWidth color="error" onClick={handleClearNotifications} sx={{ mt: 1 }}>
-                    Clear All
-                  </Button>
-                )}
-              </Popover>
+              <Notifications />
             </li>
             <li className="header-cta">
               <button

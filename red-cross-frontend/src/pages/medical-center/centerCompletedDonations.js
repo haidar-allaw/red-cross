@@ -1,65 +1,53 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, Card, CardContent, Grid, Avatar, CircularProgress, Alert, Chip, Button } from '@mui/material';
-import { CalendarToday, AccessTime, Person, Bloodtype } from '@mui/icons-material';
+import { Box, Typography, Card, CardContent, Grid, Avatar, CircularProgress, Alert, Chip } from '@mui/material';
+import { CalendarToday, AccessTime, Person, Bloodtype, DoneAll } from '@mui/icons-material';
 import axios from 'axios';
 import { getTokenPayload } from '../../utils/jwtUtils';
 
-export default function CenterAllDonations() {
-    const [donationRequests, setDonationRequests] = useState([]);
+export default function CenterCompletedDonations() {
+    const [completedDonations, setCompletedDonations] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
-    const fetchDonations = async () => {
-        setLoading(true);
-        setError('');
-        try {
-            const token = localStorage.getItem('authToken');
-            if (!token) throw new Error('Not authenticated');
-            const payload = getTokenPayload(token);
-            if (!payload || !payload.id) throw new Error('Invalid token');
-            const centerId = payload.id;
-            const { data } = await axios.get(`http://localhost:4000/api/blood/center/${centerId}`);
-            setDonationRequests(data);
-        } catch (err) {
-            setError('Failed to load donation requests');
-        } finally {
-            setLoading(false);
-        }
-    };
-
     useEffect(() => {
+        const fetchDonations = async () => {
+            setLoading(true);
+            setError('');
+            try {
+                const token = localStorage.getItem('authToken');
+                if (!token) throw new Error('Not authenticated');
+                const payload = getTokenPayload(token);
+                if (!payload || !payload.id) throw new Error('Invalid token');
+                const centerId = payload.id;
+                const { data } = await axios.get(`http://localhost:4000/api/blood/center/${centerId}`);
+                // Filter for completed donations
+                const completed = data.filter(d => d.status === 'completed');
+                setCompletedDonations(completed);
+            } catch (err) {
+                setError('Failed to load completed donations');
+            } finally {
+                setLoading(false);
+            }
+        };
+
         fetchDonations();
     }, []);
-
-    const handleCompleteDonation = async (donationId) => {
-        try {
-            const token = localStorage.getItem('authToken');
-            await axios.post(`http://localhost:4000/api/blood/${donationId}/complete`, {}, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            alert('Donation marked as complete!');
-            fetchDonations(); // Refetch to update the list
-        } catch (err) {
-            console.error('Failed to complete donation:', err);
-            alert('Failed to complete donation. ' + (err.response?.data?.message || ''));
-        }
-    };
 
     if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh' }}><CircularProgress /></Box>;
     if (error) return <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh' }}><Alert severity="error">{error}</Alert></Box>;
 
     return (
-        <Box sx={{ minHeight: '80vh', p: 3, background: 'linear-gradient(135deg, #fff 0%, #fbe9e7 100%)' }}>
-            <Typography variant="h4" sx={{ mb: 4, color: '#B71C1C', fontWeight: 700 }}>
-                All Scheduled Donation Requests
+        <Box sx={{ minHeight: '80vh', p: 3, background: 'linear-gradient(135deg, #e8f5e9 0%, #fff 100%)' }}>
+            <Typography variant="h4" sx={{ mb: 4, color: '#2e7d32', fontWeight: 700 }}>
+                Completed Donations
             </Typography>
-            {donationRequests.length === 0 ? (
-                <Alert severity="info">No scheduled donation requests at the moment.</Alert>
+            {completedDonations.length === 0 ? (
+                <Alert severity="info">No completed donations found.</Alert>
             ) : (
                 <Grid container spacing={2}>
-                    {donationRequests.map((request) => (
+                    {completedDonations.map((request) => (
                         <Grid item xs={12} key={request._id}>
-                            <Card sx={{ border: '1px solid #e0e0e0', borderRadius: 3 }}>
+                            <Card sx={{ border: '1px solid #c8e6c9', borderRadius: 3 }}>
                                 <CardContent>
                                     <Grid container spacing={2} alignItems="center">
                                         <Grid item xs={12} md={3}>
@@ -76,9 +64,6 @@ export default function CenterAllDonations() {
                                             <Typography variant="body2" color="text.secondary">
                                                 {request.user?.email || 'Email not available'}
                                             </Typography>
-                                            <Typography variant="body2" color="text.secondary">
-                                                {request.user?.phoneNumber || 'Phone not available'}
-                                            </Typography>
                                         </Grid>
                                         <Grid item xs={12} md={2}>
                                             <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
@@ -93,7 +78,7 @@ export default function CenterAllDonations() {
                                                 {request.units} units
                                             </Typography>
                                         </Grid>
-                                        <Grid item xs={12} md={3}>
+                                        <Grid item xs={12} md={4}>
                                             <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                                                 <Avatar sx={{ bgcolor: '#4CAF50', width: 32, height: 32, mr: 1 }}>
                                                     <CalendarToday />
@@ -107,34 +92,21 @@ export default function CenterAllDonations() {
                                                     <AccessTime />
                                                 </Avatar>
                                                 <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                                                    {new Date(request.timestamp).toLocaleTimeString([], {
-                                                        hour: '2-digit',
-                                                        minute: '2-digit'
-                                                    })}
+                                                    {new Date(request.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                 </Typography>
                                             </Box>
                                         </Grid>
-                                        <Grid item xs={12} md={2}>
+                                        <Grid item xs={12} md={3}>
                                             <Chip
+                                                icon={<DoneAll />}
                                                 label={request.status}
                                                 sx={{
-                                                    bgcolor: request.status === 'scheduled' ? '#1976d2' : '#666',
+                                                    bgcolor: '#4caf50',
                                                     color: 'white',
                                                     fontWeight: 600,
                                                     textTransform: 'capitalize'
                                                 }}
                                             />
-                                        </Grid>
-                                        <Grid item xs={12} md={2}>
-                                            {request.status === 'scheduled' && (
-                                                <Button
-                                                    variant="contained"
-                                                    color="success"
-                                                    onClick={() => handleCompleteDonation(request._id)}
-                                                >
-                                                    Complete
-                                                </Button>
-                                            )}
                                         </Grid>
                                     </Grid>
                                 </CardContent>

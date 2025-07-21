@@ -2,6 +2,7 @@
 import BloodEntry from '../models/BloodEntry.js';
 import MedicalCenter from '../models/MedicalCenter.js';
 import User from '../models/User.js';
+import Notification from '../models/Notification.js'; // Import Notification model
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 
@@ -10,9 +11,9 @@ const JWT_SECRET = process.env.JWT_SECRET;
 
 // POST /api/blood/donate - Create a new blood donation entry
 export async function createBloodEntry(req, res) {
-  const { medicalCenter, bloodtype, unit, timestamp, note } = req.body;
+  const { medicalCenter, bloodtype, units, timestamp, note } = req.body;
 
-  if (!medicalCenter || !bloodtype || !unit || !timestamp) {
+  if (!medicalCenter || !bloodtype || !units || !timestamp) {
     return res.status(400).json({ message: 'Missing required fields' });
   }
 
@@ -70,7 +71,7 @@ export async function createBloodEntry(req, res) {
       user: userId,
       medicalCenter,
       bloodtype,
-      units: unit,
+      units,
       expirydate: expiryDate,
       timestamp: new Date(timestamp),
       status: 'scheduled'
@@ -195,6 +196,104 @@ export async function deleteBloodEntry(req, res) {
     res.json({ message: 'Blood entry deleted successfully' });
   } catch (err) {
     console.error('Error deleting blood entry:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+}
+
+// POST /api/blood/:id/complete - Mark a donation as complete
+export async function completeDonation(req, res) {
+  const { id } = req.params;
+
+  try {
+    const donation = await BloodEntry.findById(id);
+    if (!donation) {
+      return res.status(404).json({ message: 'Donation not found' });
+    }
+
+    if (donation.status === 'completed') {
+      return res.status(400).json({ message: 'Donation has already been completed' });
+    }
+
+    // Update donation status
+    donation.status = 'completed';
+    await donation.save();
+
+    // Create a notification for the user
+    await Notification.create({
+      user: donation.user,
+      message: `Your donation appointment scheduled for ${new Date(donation.timestamp).toLocaleString()} has been completed. Thank you for your contribution!`,
+      link: '/my-donations'
+    });
+
+    // Update center's available blood
+    const center = await MedicalCenter.findById(donation.medicalCenter);
+    if (center) {
+      const bloodType = donation.bloodtype;
+      const units = donation.units;
+
+      if (typeof units !== 'number') {
+        return res.status(400).json({ message: 'Donation record is corrupt and cannot be completed because units are missing.' });
+      }
+
+      const existingBlood = center.availableBloodTypes.find(b => b.type === bloodType);
+
+      if (existingBlood) {
+        existingBlood.quantity += units;
+      } else {
+        center.availableBloodTypes.push({ type: bloodType, quantity: units });
+      }
+
+      // **FIX:** Clean up arrays before saving to prevent validation errors from old data.
+      center.availableBloodTypes = center.availableBloodTypes.filter(
+        b => b && typeof b.type === 'string' && b.type && typeof b.quantity === 'number'
+      );
+      center.neededBloodTypes = center.neededBloodTypes.filter(
+        b => b && typeof b.type === 'string' && b.type && typeof b.quantity === 'number'
+      );
+
+      await center.save();
+    }
+
+    res.json({ message: 'Donation completed successfully', donation });
+  } catch (err) {
+    console.error('Error completing donation:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+}
+
+// PATCH /api/blood/:id/cancel - Cancel a donation
+export async function cancelDonation(req, res) {
+  const { id } = req.params;
+  const { reason } = req.body;
+
+  if (!reason) {
+    return res.status(400).json({ message: 'A cancellation reason is required.' });
+  }
+
+  try {
+    const donation = await BloodEntry.findById(id);
+    if (!donation) {
+      return res.status(404).json({ message: 'Donation not found' });
+    }
+
+    if (donation.status === 'completed' || donation.status === 'cancelled') {
+      return res.status(400).json({ message: `Donation has already been ${donation.status}` });
+    }
+
+    donation.status = 'cancelled';
+    donation.cancellationReason = reason; // Make sure your schema has this field
+    await donation.save();
+
+    // Create a notification for the user
+    await Notification.create({
+      user: donation.user,
+      message: `Your donation appointment scheduled for ${new Date(donation.timestamp).toLocaleString()} has been canceled. Reason: ${reason}`,
+      link: '/my-donations' // Example link
+    });
+
+    res.json({ message: 'Donation cancelled successfully', donation });
+  } catch (err) {
+    console.error('Error cancelling donation:', err);
     res.status(500).json({ message: 'Server error' });
   }
 }
@@ -366,4 +465,4 @@ export async function cleanupBloodEntries(req, res) {
     console.error('Error cleaning up blood entries:', err);
     res.status(500).json({ message: 'Server error' });
   }
-} 
+}

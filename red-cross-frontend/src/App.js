@@ -24,6 +24,9 @@ import CenterAllDonations from './pages/medical-center/centerAllDonations';
 import CenterAllBloodRequests from './pages/medical-center/centerAllBloodRequests';
 import CenterAcceptedRequests from './pages/medical-center/centerAcceptedRequests';
 import CenterCanceledRequests from './pages/medical-center/centerCanceledRequests';
+import CenterCompletedDonations from './pages/medical-center/centerCompletedDonations';
+import CenterCanceledDonations from './pages/medical-center/centerCanceledDonations';
+import AllNeededBlood from './pages/AllNeededBlood';
 
 export default function App() {
   return (
@@ -37,6 +40,7 @@ export default function App() {
             <Route path="about" element={<AboutPage />} />
             <Route path="hospitals" element={<HospitalWrapper />} />
             <Route path="donate-blood" element={<DonateBlood />} />
+            <Route path="all-needed-blood" element={<AllNeededBlood />} />
 
             {/* Protected section */}
             <Route
@@ -52,6 +56,22 @@ export default function App() {
               element={
                 <ProtectedRoute role="center">
                   <CenterAllDonations />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/center/donations/completed"
+              element={
+                <ProtectedRoute role="center">
+                  <CenterCompletedDonations />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/center/donations/canceled"
+              element={
+                <ProtectedRoute role="center">
+                  <CenterCanceledDonations />
                 </ProtectedRoute>
               }
             />

@@ -108,6 +108,22 @@ export default function CenterDashboard() {
             } catch (err) {
                 setError('Failed to delete the request.');
             }
+        } else if (dialogType === 'cancel_donation') {
+            if (!dialogInput) {
+                setError('A reason is required to cancel a donation.');
+                return;
+            }
+            try {
+                const token = localStorage.getItem('authToken');
+                await axios.patch(`http://localhost:4000/api/blood/${dialogRequestId}/cancel`,
+                    { reason: dialogInput },
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
+                setDonationRequests((prev) => prev.filter((req) => req._id !== dialogRequestId));
+                setSuccess('Donation request has been successfully canceled.');
+            } catch (err) {
+                setError('Failed to cancel the donation request.');
+            }
         } else if (dialogType === 'cancel') {
             if (!dialogInput) return;
             try {
@@ -117,7 +133,7 @@ export default function CenterDashboard() {
                 await axios.patch(`http://localhost:4000/api/bloodRequests/${dialogRequestId}/reject`, { centerId: payload.id, rejectionReason: dialogInput });
                 setBloodRequests((prev) => prev.map((req) => req._id === dialogRequestId ? { ...req, status: 'Rejected', approvedAt: new Date(), rejectionReason: dialogInput } : req));
             } catch (err) {
-                setError('Failed to cancel the request.');
+                setError('Failed to cancel the blood request.');
             }
         }
         closeDialog();
@@ -187,8 +203,22 @@ export default function CenterDashboard() {
     const handleAvailableChange = (e) => {
         setAvailableBlood(e.target.value);
     };
-    const handleNeededChange = (e) => {
-        setNeededBlood(e.target.value);
+
+    const handleNeededChange = (type, quantity) => {
+        setNeededBlood((prev) => {
+            const existing = prev.find(b => b.type === type);
+            if (existing) {
+                if (quantity === '' || quantity < 0) {
+                    return prev.filter(b => b.type !== type);
+                }
+                return prev.map(b => b.type === type ? { ...b, quantity } : b);
+            } else {
+                if (quantity !== '' && quantity >= 0) {
+                    return [...prev, { type, quantity }];
+                }
+            }
+            return prev;
+        });
     };
 
     const handleSave = async () => {
@@ -206,13 +236,18 @@ export default function CenterDashboard() {
             // Only send valid blood types with both type and quantity
             const filteredAvailableBlood = availableBlood
                 .filter(b => typeof b.type === 'string' && b.type && typeof b.quantity === 'number' && b.quantity >= 0);
+
+            const filteredNeededBlood = neededBlood
+                .filter(b => typeof b.type === 'string' && b.type && typeof b.quantity === 'number' && b.quantity >= 0);
+
             console.log('Filtered availableBloodTypes:', filteredAvailableBlood);
+            console.log('Filtered neededBloodTypes:', filteredNeededBlood);
 
             await axios.patch(
                 `http://localhost:4000/api/centers/${centerId}`,
                 {
                     availableBloodTypes: filteredAvailableBlood,
-                    neededBloodTypes: neededBlood
+                    neededBloodTypes: filteredNeededBlood
                 }
             );
             setSuccess('Changes saved successfully!');
@@ -223,18 +258,38 @@ export default function CenterDashboard() {
         }
     };
 
-    // Cancel donation request handler
-    const handleCancelRequest = async (id) => {
-        if (!window.confirm('Are you sure you want to cancel this donation request?')) return;
-        setDeletingId(id);
+    // Complete donation request handler
+    const handleCompleteDonation = async (id) => {
         try {
-            await axios.delete(`http://localhost:4000/api/blood/${id}`);
-            setDonationRequests((prev) => prev.filter((req) => req._id !== id));
+            const token = localStorage.getItem('authToken');
+            await axios.post(`http://localhost:4000/api/blood/${id}/complete`, {}, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            // Refresh data after completion
+            const payload = getTokenPayload(token);
+            const centerId = payload.id;
+            const { data: updatedCenter } = await axios.get(`http://localhost:4000/api/centers/${centerId}`);
+            setAvailableBlood(updatedCenter.availableBloodTypes || []);
+
+            const { data: requests } = await axios.get(`http://localhost:4000/api/blood/center/${centerId}`);
+            setDonationRequests(requests.filter(req => req.status === 'scheduled'));
+
+            setSuccess('Donation completed and inventory updated!');
         } catch (err) {
-            alert('Failed to cancel the request.');
-        } finally {
-            setDeletingId(null);
+            setError('Failed to complete donation.');
         }
+    };
+
+    // Cancel donation request handler
+    const handleCancelRequest = (id) => {
+        openDialog('cancel_donation', id, {
+            title: 'Cancel Donation Request',
+            content: 'Please provide a reason for cancelling this donation appointment.',
+            confirmText: 'Confirm Cancellation',
+            showInput: true,
+            inputLabel: 'Cancellation Reason'
+        });
     };
 
     // Approve blood request handler
@@ -675,20 +730,31 @@ export default function CenterDashboard() {
                                 })}
                             </Box>
 
-                            <TextField
-                                select
-                                label="Needed Blood Types"
-                                value={neededBlood}
-                                onChange={handleNeededChange}
-                                SelectProps={{ multiple: true }}
-                                fullWidth
-                                sx={{ mb: 3 }}
-                                helperText="Select all blood types you need"
-                            >
-                                {bloodTypes.map(bt => (
-                                    <MenuItem key={bt} value={bt}>{bt}</MenuItem>
-                                ))}
-                            </TextField>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1, mt: 3 }}>
+                                Needed Blood Types & Quantities
+                            </Typography>
+                            <Box sx={{ mb: 2 }}>
+                                {bloodTypes.map((bt) => {
+                                    const found = neededBlood.find((b) => b.type === bt);
+                                    return (
+                                        <Box key={bt} sx={{ display: 'flex', alignItems: 'center', mb: 1, gap: 2 }}>
+                                            <Typography sx={{ minWidth: 40 }}>{bt}</Typography>
+                                            <TextField
+                                                type="number"
+                                                size="small"
+                                                label="Quantity"
+                                                value={found ? found.quantity : ''}
+                                                onChange={e => {
+                                                    const qty = parseInt(e.target.value, 10);
+                                                    handleNeededChange(bt, isNaN(qty) ? '' : qty);
+                                                }}
+                                                inputProps={{ min: 0 }}
+                                                sx={{ width: 100 }}
+                                            />
+                                        </Box>
+                                    );
+                                })}
+                            </Box>
 
                             <Button
                                 variant="contained"
@@ -818,7 +884,7 @@ export default function CenterDashboard() {
                                                                             fontWeight: 600,
                                                                             '&:hover': { bgcolor: '#388e3c' }
                                                                         }}
-                                                                        onClick={() => console.log('Complete clicked')}
+                                                                        onClick={() => handleCompleteDonation(request._id)}
                                                                     >
                                                                         Complete
                                                                     </Button>

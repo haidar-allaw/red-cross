@@ -26,10 +26,12 @@ export default function MapScreen() {
   useEffect(() => {
     const fetchCenters = async () => {
       try {
+        console.log("API URL:", apiUrl)
         const { data } = await axios.get(`${apiUrl}/centers/all`)
+        console.log("Fetched centers:", data)
         setCenters(data.filter((c) => c.isApproved))
       } catch (err) {
-        console.error(err)
+        console.error("Fetch error:", err)
         Alert.alert("Error", "Could not load medical centers. Please check your internet connection.")
       } finally {
         setLoading(false)
@@ -97,13 +99,13 @@ export default function MapScreen() {
                     <View
                       style={[
                         styles.statusDot,
-                        { backgroundColor: center.availableBloodTypes.length ? "#22c55e" : "#ef4444" }, // Green for in stock, Red for out of stock
+                        { backgroundColor: Array.isArray(center.availableBloodTypes) && center.availableBloodTypes.length ? "#22c55e" : "#ef4444" }, // Green for in stock, Red for out of stock
                       ]}
                     />
                     <Text
-                      style={[styles.statusText, { color: center.availableBloodTypes.length ? "#22c55e" : "#ef4444" }]}
+                      style={[styles.statusText, { color: Array.isArray(center.availableBloodTypes) && center.availableBloodTypes.length ? "#22c55e" : "#ef4444" }]}
                     >
-                      {center.availableBloodTypes.length ? "In Stock" : "Out of Stock"}
+                      {Array.isArray(center.availableBloodTypes) && center.availableBloodTypes.length ? "In Stock" : "Out of Stock"}
                     </Text>
                   </View>
                 </View>
@@ -125,10 +127,10 @@ export default function MapScreen() {
                 {/* Blood Types */}
                 <Text style={styles.sectionTitle}>Available Blood Types</Text>
                 <View style={styles.chipContainer}>
-                  {center.availableBloodTypes.length > 0 ? (
+                  {Array.isArray(center.availableBloodTypes) && center.availableBloodTypes.length > 0 ? (
                     center.availableBloodTypes.map((bt) => (
-                      <View key={bt} style={styles.chipAvailable}>
-                        <Text style={styles.chipText}>{bt}</Text>
+                      <View key={bt._id || bt.type || bt} style={styles.chipAvailable}>
+                        <Text style={styles.chipText}>{bt.type || bt}</Text>
                       </View>
                     ))
                   ) : (
@@ -138,10 +140,10 @@ export default function MapScreen() {
 
                 <Text style={styles.sectionTitle}>Needed Blood Types</Text>
                 <View style={styles.chipContainer}>
-                  {center.neededBloodTypes.length > 0 ? (
+                  {Array.isArray(center.neededBloodTypes) && center.neededBloodTypes.length > 0 ? (
                     center.neededBloodTypes.map((bt) => (
-                      <View key={bt} style={styles.chipNeeded}>
-                        <Text style={styles.chipText}>{bt}</Text>
+                      <View key={bt._id || bt.type || bt} style={styles.chipNeeded}>
+                        <Text style={styles.chipText}>{bt.type || bt}</Text>
                       </View>
                     ))
                   ) : (

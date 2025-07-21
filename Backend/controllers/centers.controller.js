@@ -153,7 +153,15 @@ export async function updateCenter(req, res) {
       quantity: typeof bt.quantity === 'number' ? bt.quantity : 0
     }));
   }
-  if (req.body.neededBloodTypes) updateFields.neededBloodTypes = req.body.neededBloodTypes;
+  if (req.body.neededBloodTypes) {
+    req.body.neededBloodTypes = req.body.neededBloodTypes.filter(
+      b => typeof b.type === 'string' && b.type && typeof b.quantity === 'number' && b.quantity >= 0
+    );
+    updateFields.neededBloodTypes = req.body.neededBloodTypes.map(bt => ({
+      type: bt.type,
+      quantity: typeof bt.quantity === 'number' ? bt.quantity : 0
+    }));
+  }
   if (req.body.name) updateFields.name = req.body.name;
   if (req.body.address) updateFields.address = req.body.address;
   // Add more fields as needed

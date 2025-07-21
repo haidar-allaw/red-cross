@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import React, { useState } from "react"
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import {
   StatusBar,
 } from "react-native"
 import axios from "axios"
+import AsyncStorage from "@react-native-async-storage/async-storage"
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState("")
@@ -25,20 +26,34 @@ export default function LoginScreen({ navigation }) {
   const apiUrl = process.env.EXPO_PUBLIC_API_URL
 
   const handleLogin = async () => {
-    setLoading(true)
-    setError("")
+    setLoading(true);
+    setError("");
     try {
       const response = await axios.post(`${apiUrl}/users/login`, {
         email,
         password,
-      })
-      navigation.navigate("Dashboard")
+      });
+
+      // 1) Inspect the raw response:
+      console.log("🔑 login response:", response.data);
+      const { user, token } = response.data;
+      console.log(user)
+      // 2) Save to AsyncStorage and immediately re‑read to verify:
+      await AsyncStorage.setItem("userId", user.id);
+      await AsyncStorage.setItem("userToken", token);
+
+      const verifyId = await AsyncStorage.getItem("userId");
+      const verifyToken = await AsyncStorage.getItem("userToken");
+      console.log("✅ after set — userId:", verifyId, "token:", verifyToken);
+
+      navigation.navigate("Dashboard");
     } catch (err) {
-      setError(err.response?.data?.message || "Invalid credentials")
+      console.error("❌ handleLogin error:", err);
+      setError(err.response?.data?.message || "Invalid credentials");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <>
@@ -104,7 +119,9 @@ export default function LoginScreen({ navigation }) {
                   onPress={handleLogin}
                   disabled={loading}
                 >
-                  <Text style={styles.loginButtonText}>{loading ? "Signing in..." : "Sign In"}</Text>
+                  <Text style={styles.loginButtonText}>
+                    {loading ? "Signing in..." : "Sign In"}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>

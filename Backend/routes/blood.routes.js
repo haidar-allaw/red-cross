@@ -10,13 +10,17 @@ import {
   getBloodEntriesByCenter,
   getHospitalDonationStats,
   testBloodEntries,
-  cleanupBloodEntries
+  cleanupBloodEntries,
+  completeDonation,
+  cancelDonation
 } from "../controllers/blood.controller.js";
 
 const router = express.Router();
 
 // Blood donation endpoints
 router.post("/donate", createBloodEntry);
+router.post("/:id/complete", completeDonation);
+router.patch("/:id/cancel", cancelDonation);
 
 // Blood entry management endpoints
 router.get("/", getAllBloodEntries);

@@ -15,7 +15,10 @@ const medicalCenterSchema = new Schema({
     type: { type: String, required: true },
     quantity: { type: Number, required: true, min: 0, default: 0 }
   }],
-  neededBloodTypes: [{ type: String }],
+  neededBloodTypes: [{
+    type: { type: String, required: true },
+    quantity: { type: Number, required: true, min: 0, default: 0 }
+  }],
 }, {
   timestamps: true,
   collection: 'medicalcenters'

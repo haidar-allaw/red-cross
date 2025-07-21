@@ -23,6 +23,7 @@ const bloodEntrySchema = new Schema(
       default: "scheduled",
     },
     units: { type: Number, required: true },
+    cancellationReason: { type: String },
   },
   {
     timestamps: false,

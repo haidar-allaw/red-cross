@@ -1,0 +1,69 @@
+.all-needed-blood-container {
+    padding: 4rem 2rem;
+    background-color: #f4f7f6;
+}
+
+.page-header {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.page-title {
+    font-size: 2.5rem;
+    color: #b71c1c;
+    font-weight: 700;
+}
+
+.page-subtitle {
+    font-size: 1.1rem;
+    color: #555;
+}
+
+.needed-blood-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 2rem;
+}
+
+.needed-blood-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    padding: 1.5rem;
+    transition: transform 0.2s;
+}
+
+.needed-blood-card:hover {
+    transform: translateY(-5px);
+}
+
+.hospital-name {
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 1rem;
+}
+
+.blood-type-list {
+    list-style: none;
+    padding: 0;
+}
+
+.blood-type-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #eee;
+}
+
+.blood-type-tag {
+    background-color: #b71c1c;
+    color: white;
+    padding: 0.2rem 0.6rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+}
+
+.quantity-needed {
+    font-weight: 500;
+}

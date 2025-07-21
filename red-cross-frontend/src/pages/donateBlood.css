@@ -18,11 +18,9 @@
 .page-background .gradient-overlay {
   position: absolute;
   inset: 0;
-  background: radial-gradient(
-    circle at 50% 50%,
-    rgba(211, 47, 47, 0.05),
-    transparent 50%
-  );
+  background: radial-gradient(circle at 50% 50%,
+      rgba(211, 47, 47, 0.05),
+      transparent 50%);
 }
 
 .page-background .mouse-gradient {
@@ -44,6 +42,7 @@
 }
 
 @keyframes float-gentle {
+
   0%,
   100% {
     transform: translateY(0px) rotate(0deg);
@@ -216,12 +215,10 @@
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.1),
-    transparent
-  );
+  background: linear-gradient(90deg,
+      transparent,
+      rgba(255, 255, 255, 0.1),
+      transparent);
   animation: shimmer 3s infinite;
 }
 
@@ -465,4 +462,67 @@
 .submit-btn:focus {
   outline: 2px solid #fca5a5;
   outline-offset: 2px;
+}
+
+/* Needed Blood Section */
+.needed-blood-section {
+  animation-delay: 0.8s;
+}
+
+.needed-blood-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+.needed-blood-card {
+  background: #f8f9fa;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  border: 1px solid #e9ecef;
+  transition: all 0.3s ease;
+}
+
+.needed-blood-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.hospital-name {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #343a40;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid #b71c1c;
+}
+
+.blood-type-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.blood-type-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 1rem;
+}
+
+.blood-type-tag {
+  background-color: #b71c1c;
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 1rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.quantity-needed {
+  font-weight: 500;
+  color: #495057;
 }

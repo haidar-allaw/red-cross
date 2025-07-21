@@ -94,6 +94,7 @@ export default function CenterAllBloodRequests() {
     const handleApproveBloodRequest = async (id) => {
         if (!window.confirm('Are you sure you want to approve this blood request?')) return;
         try {
+            console.log('approving blood request');
             const token = localStorage.getItem('authToken');
             const payload = getTokenPayload(token);
             if (!payload || !payload.id) throw new Error('Invalid token');

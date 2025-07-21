@@ -1,5 +1,7 @@
 import BloodRequest from '../models/BloodRequest.js';
 import MedicalCenter from '../models/MedicalCenter.js';
+import User from '../models/User.js';
+import Notification from '../models/Notification.js';
 
 export async function createBloodRequest(req, res) {
   const {
@@ -129,6 +131,18 @@ export async function approveBloodRequest(req, res) {
 
     await center.save();
 
+    // Notify the user if possible
+    if (bloodRequest.userEmail) {
+      const user = await User.findOne({ email: bloodRequest.userEmail });
+      if (user) {
+        await Notification.create({
+          user: user._id,
+          message: `Your blood request for ${bloodRequest.unitsNeeded} units of ${bloodRequest.bloodType} has been approved by ${center.name}.`,
+          link: '/my-blood-requests'
+        });
+      }
+    }
+
     res.json({
       message: 'Blood request approved successfully',
       request: bloodRequest
@@ -164,6 +178,18 @@ export async function rejectBloodRequest(req, res) {
       message: 'Blood request rejected successfully',
       request: bloodRequest
     });
+
+    // Notify the user if possible
+    if (bloodRequest.userEmail) {
+      const user = await User.findOne({ email: bloodRequest.userEmail });
+      if (user) {
+        await Notification.create({
+          user: user._id,
+          message: `Your blood request for ${bloodRequest.unitsNeeded} units of ${bloodRequest.bloodType} was rejected. Reason: ${rejectionReason || 'No reason provided.'}`,
+          link: '/my-blood-requests'
+        });
+      }
+    }
   } catch (err) {
     console.error('Error rejecting blood request:', err);
     res.status(500).json({ message: 'Server error' });

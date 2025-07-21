@@ -14,13 +14,14 @@ import LoginScreen from '../screens/LoginScreen';
 import DonationScreen from '../screens/DonationScreen';
 import MapScreen from '../screens/MapScreen';
 import RequestBloodScreen from '../screens/RequestBloodScreen';
+import NotificationsScreen from '../screens/NotificationsScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
 // Bottom Tabs for Dashboard
-function DashboardTabs() {
-      const insets = useSafeAreaInsets();
+function DashboardTabs({ navigation }) {
+  const insets = useSafeAreaInsets();
 
   return (
     <Tab.Navigator
@@ -48,6 +49,15 @@ function DashboardTabs() {
         headerStyle: { backgroundColor: '#B71C1C' },
         headerTintColor: '#fff',
         headerTitleStyle: { fontWeight: 'bold' },
+        headerRight: () => (
+          <Ionicons
+            name="notifications-outline"
+            size={26}
+            color="#fff"
+            style={{ marginRight: 18 }}
+            onPress={() => navigation.navigate('Notifications')}
+          />
+        ),
       })}
     >
       <Tab.Screen
@@ -93,6 +103,16 @@ export default function RootNavigator() {
           name="Dashboard"
           component={DashboardTabs}
           options={{ headerShown: false }} // Hide stack header; tabs handle their own
+        />
+        <Stack.Screen
+          name="Notifications"
+          component={NotificationsScreen}
+          options={{
+            title: 'Notifications',
+            headerStyle: { backgroundColor: '#B71C1C' },
+            headerTintColor: '#fff',
+            headerTitleStyle: { fontWeight: 'bold' },
+          }}
         />
       </Stack.Navigator>
     </NavigationContainer>

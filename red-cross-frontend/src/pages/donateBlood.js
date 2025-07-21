@@ -18,6 +18,8 @@ export default function DonateBloodPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const bloodTypes = ['O-', 'O+', 'A-', 'A+', 'B-', 'B+', 'AB-', 'AB+'];
+  const [neededBloodData, setNeededBloodData] = useState([]);
+
 
   const pageRef = useRef(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
@@ -42,7 +44,17 @@ export default function DonateBloodPage() {
     setLoadingCenters(true);
     axios
       .get('http://localhost:4000/api/centers')
-      .then(({ data }) => setCenters(data))
+      .then(({ data }) => {
+        setCenters(data);
+        const needed = data
+          .filter(center => center.neededBloodTypes && center.neededBloodTypes.length > 0)
+          .map(center => ({
+            _id: center._id,
+            name: center.name,
+            neededBloodTypes: center.neededBloodTypes
+          }));
+        setNeededBloodData(needed);
+      })
       .catch(() => setCenters([]))
       .finally(() => setLoadingCenters(false));
   }, []);
@@ -67,7 +79,7 @@ export default function DonateBloodPage() {
         {
           medicalCenter: form.medicalCenter,
           bloodtype: form.bloodtype,
-          unit: Number(form.units),
+          units: Number(form.units), // Corrected from `unit`
           timestamp: form.date + 'T' + form.time, // Combine date and time for backend
         },
         {
@@ -266,6 +278,41 @@ export default function DonateBloodPage() {
             </form>
           </div>
         </div>
+
+        {neededBloodData.length > 0 && (
+          <div className="card-section needed-blood-section">
+            <div className="card-header">
+              <h2 className="card-title">Hospitals in Need</h2>
+              <p className="card-subtitle">
+                These centers have an urgent need for the following blood types:
+              </p>
+            </div>
+            <div className="card-content">
+              <div className="needed-blood-grid">
+                {neededBloodData.slice(0, 3).map((center) => (
+                  <div key={center._id} className="needed-blood-card">
+                    <h3 className="hospital-name">{center.name}</h3>
+                    <ul className="blood-type-list">
+                      {center.neededBloodTypes.map((blood) => (
+                        <li key={blood.type} className="blood-type-item">
+                          <span className="blood-type-tag">{blood.type}</span>
+                          <span className="quantity-needed">{blood.quantity} units</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+              {neededBloodData.length > 3 && (
+                <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
+                  <a href="/all-needed-blood" className="submit-btn" style={{ textDecoration: 'none', display: 'inline-block', width: 'auto', padding: '0.8rem 1.5rem' }}>
+                    View More Hospitals
+                  </a>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         <div className="page-footer-text">
           <p>Thank you for making a difference in someone's life</p>
