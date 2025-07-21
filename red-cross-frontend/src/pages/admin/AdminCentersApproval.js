@@ -27,7 +27,8 @@ import {
 import {
   Check as CheckIcon,
   Visibility as ViewIcon,
-  Search as SearchIcon
+  Search as SearchIcon,
+  Delete as DeleteIcon
 } from '@mui/icons-material';
 import axios from 'axios';
 
@@ -43,6 +44,9 @@ export default function AdminCentersApproval() {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [selectedCenter, setSelectedCenter] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [centerToDelete, setCenterToDelete] = useState(null);
 
   useEffect(() => {
     fetchAll();
@@ -71,6 +75,27 @@ export default function AdminCentersApproval() {
       setError('Approval failed');
     } finally {
       setApprovingId(null);
+    }
+  };
+
+  const requestDelete = (center) => {
+    setCenterToDelete(center);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!centerToDelete) return;
+    setDeletingId(centerToDelete._id);
+    try {
+      await axios.delete(`${API_BASE}/${centerToDelete._id}`);
+      setCenters(centers.filter(c => c._id !== centerToDelete._id));
+      if (selectedCenter && selectedCenter._id === centerToDelete._id) setViewDialogOpen(false);
+      setDeleteDialogOpen(false);
+      setCenterToDelete(null);
+    } catch (err) {
+      setError('Delete failed');
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -193,6 +218,18 @@ export default function AdminCentersApproval() {
                             </span>
                           </Tooltip>
                         )}
+                        <Tooltip title="Delete Center">
+                          <span>
+                            <IconButton
+                              size="small"
+                              color="error"
+                              disabled={deletingId === center._id}
+                              onClick={() => requestDelete(center)}
+                            >
+                              {deletingId === center._id ? <CircularProgress size={20} color="inherit" /> : <DeleteIcon />}
+                            </IconButton>
+                          </span>
+                        </Tooltip>
                       </Box>
                     </TableCell>
                   </TableRow>
@@ -249,11 +286,51 @@ export default function AdminCentersApproval() {
                   />
                 </Box>
               </Box>
+              {/* Hospital Card Image */}
+              <Box sx={{ mt: 3 }}>
+                <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
+                  Hospital Card Image
+                </Typography>
+                {selectedCenter.hospitalCardImage ? (
+                  <img
+                    src={`http://localhost:4000/${selectedCenter.hospitalCardImage.replace(/\\/g, '/')}`}
+                    alt="Hospital Card"
+                    style={{ maxWidth: '100%', maxHeight: 300, borderRadius: 8, border: '1px solid #eee' }}
+                  />
+                ) : (
+                  <Typography variant="body2" color="text.secondary">
+                    No hospital card image uploaded.
+                  </Typography>
+                )}
+              </Box>
             </Box>
           )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setViewDialogOpen(false)}>Close</Button>
+          {selectedCenter && (
+            <Button
+              color="error"
+              onClick={() => requestDelete(selectedCenter)}
+              disabled={deletingId === selectedCenter._id}
+              startIcon={deletingId === selectedCenter._id ? <CircularProgress size={16} color="inherit" /> : <DeleteIcon />}
+            >
+              Delete
+            </Button>
+          )}
+        </DialogActions>
+      </Dialog>
+      {/* Confirm Delete Dialog */}
+      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+        <DialogTitle>Confirm Delete</DialogTitle>
+        <DialogContent>
+          <Typography>Are you sure you want to delete the medical center <b>{centerToDelete?.name}</b>? This action cannot be undone.</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialogOpen(false)} disabled={deletingId === centerToDelete?._id}>Cancel</Button>
+          <Button onClick={handleDelete} color="error" disabled={deletingId === centerToDelete?._id} startIcon={deletingId === centerToDelete?._id ? <CircularProgress size={16} color="inherit" /> : <DeleteIcon />}>
+            Delete
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>

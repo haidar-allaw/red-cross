@@ -188,7 +188,13 @@ export default function RequestBloodScreen({ navigation }) {
                   style={[styles.urgencyButton, urgency === level && styles.urgencyButtonActive]}
                   onPress={() => setUrgency(level)}
                 >
-                  <Text style={[styles.urgencyText, urgency === level && styles.urgencyTextActive]}>{level}</Text>
+                  <Text
+                    style={[styles.urgencyText, urgency === level && styles.urgencyTextActive]}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                  >
+                    {level}
+                  </Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -481,11 +487,12 @@ const styles = StyleSheet.create({
     borderColor: "#e5e7eb",
     borderRadius: 12,
     paddingVertical: 12,
-    paddingHorizontal: 20,
+    paddingHorizontal: 0, // reduced to allow more space
     backgroundColor: "#f9fafb",
     flex: 1,
-    marginHorizontal: 5,
+    marginHorizontal: 3, // reduced from 5
     alignItems: "center",
+    minWidth: 0, // allow shrinking
   },
   urgencyButtonActive: {
     backgroundColor: "#dc2626",

@@ -175,6 +175,19 @@ export async function updateCenter(req, res) {
   }
 }
 
+// DELETE /api/centers/:id
+export async function deleteCenter(req, res) {
+  const { id } = req.params;
+  try {
+    const center = await MedicalCenter.findByIdAndDelete(id);
+    if (!center) return res.status(404).json({ message: 'Center not found' });
+    res.json({ message: 'Medical center deleted' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+}
+
 // GET /api/centers/count
 export async function getCenterCount(req, res) {
   try {
