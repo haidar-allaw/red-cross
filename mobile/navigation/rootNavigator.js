@@ -1,5 +1,3 @@
-// RootNavigator.js
-
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
@@ -15,16 +13,16 @@ import DonationScreen from '../screens/DonationScreen';
 import MapScreen from '../screens/MapScreen';
 import RequestBloodScreen from '../screens/RequestBloodScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
+import HospitalMapScreen from '../screens/HospitalMapScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
-// Bottom Tabs for Dashboard
 function DashboardTabs({ navigation }) {
   const insets = useSafeAreaInsets();
 
   return (
-    <Tab.Navigator
+     <Tab.Navigator
       screenOptions={({ route }) => ({
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;
@@ -34,6 +32,8 @@ function DashboardTabs({ navigation }) {
             iconName = focused ? 'map' : 'map-outline';
           } else if (route.name === 'Request') {
             iconName = focused ? 'medical' : 'medical-outline';
+          } else if (route.name === 'Hospitals') {
+            iconName = focused ? 'medkit' : 'medkit-outline';
           }
           return <Ionicons name={iconName} size={size} color={color} />;
         },
@@ -43,7 +43,7 @@ function DashboardTabs({ navigation }) {
           backgroundColor: '#fff',
           borderTopWidth: 1,
           borderTopColor: '#e0e0e0',
-          height: 55 + insets.bottom,        // add inset to height
+          height: 55 + insets.bottom,
           paddingBottom: 5 + insets.bottom,
         },
         headerStyle: { backgroundColor: '#B71C1C' },
@@ -71,6 +71,11 @@ function DashboardTabs({ navigation }) {
         options={{ title: 'Find Centers' }}
       />
       <Tab.Screen
+        name="Hospitals"
+        component={HospitalMapScreen}
+        options={{ title: 'Hospitals' }}
+      />
+      <Tab.Screen
         name="Request"
         component={RequestBloodScreen}
         options={{ title: 'Request Blood' }}
@@ -79,7 +84,6 @@ function DashboardTabs({ navigation }) {
   );
 }
 
-// Root Navigator
 export default function RootNavigator() {
   return (
     <NavigationContainer>
@@ -102,7 +106,17 @@ export default function RootNavigator() {
         <Stack.Screen
           name="Dashboard"
           component={DashboardTabs}
-          options={{ headerShown: false }} // Hide stack header; tabs handle their own
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="HospitalMap"
+          component={HospitalMapScreen}
+          options={{
+            title: 'Center Location',
+            headerStyle: { backgroundColor: '#B71C1C' },
+            headerTintColor: '#fff',
+            headerTitleStyle: { fontWeight: 'bold' },
+          }}
         />
         <Stack.Screen
           name="Notifications"
