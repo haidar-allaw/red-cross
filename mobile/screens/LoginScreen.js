@@ -1,4 +1,3 @@
-"use client"
 
 import React, { useState } from "react"
 import {
@@ -29,7 +28,7 @@ export default function LoginScreen({ navigation }) {
     setLoading(true);
     setError("");
     try {
-      const response = await axios.post(`${apiUrl}/users/login`, {
+      const response = await axios.post(`http://192.168.0.100:4000/api/users/login`, {
         email,
         password,
       });

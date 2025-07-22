@@ -1,92 +1,129 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, ActivityIndicator, TouchableOpacity, Alert, StyleSheet } from 'react-native';
-import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import jwtDecode from 'jwt-decode';
+// NotificationsScreen.jsx
 
-const getUserIdFromToken = async () => {
-    const token = await AsyncStorage.getItem('userToken');
-    if (!token) return null;
-    console.log('as', token);
-    console.log(token);
-
-    try {
-        const decoded = jwtDecode(token);
-        return decoded.id;
-    } catch (e) {
-        return null;
-    }
-};
+import React, { useEffect, useState } from "react";
+import {
+  View,
+  Text,
+  FlatList,
+  ActivityIndicator,
+  TouchableOpacity,
+  Alert,
+  StyleSheet,
+} from "react-native";
+import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function NotificationsScreen() {
-    const [notifications, setNotifications] = useState([]);
-    const [loading, setLoading] = useState(true);
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-    const fetchNotifications = async () => {
-        setLoading(true);
-        try {
-            const userId = await getUserIdFromToken();
-            const { data } = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/notifications?userId=${'68708d3858425eb3f31c1a47'}`);
-            console.log(data);
+  const apiUrl = process.env.EXPO_PUBLIC_API_URL;
 
-            setNotifications(data);
-        } catch (err) {
-            Alert.alert('Error', 'Failed to load notifications');
-        } finally {
-            setLoading(false);
-        }
-    };
+  // Helper to get token
+  const getToken = async () => {
+    return AsyncStorage.getItem("userToken");
+  };
 
-    const clearAllNotifications = async () => {
-        try {
-            const userId = await getUserIdFromToken();
-            if (!userId) throw new Error('User ID not found');
-            await axios.delete(`${process.env.EXPO_PUBLIC_API_URL}/notifications/clear-all?userId=${userId}`);
-            fetchNotifications();
-        } catch (err) {
-            Alert.alert('Error', 'Failed to clear notifications');
-        }
-    };
+  const fetchNotifications = async () => {
+    setLoading(true);
+    try {
+      const token = await getToken();
+      if (!token) throw new Error("Not authenticated");
+      const userId = await AsyncStorage.getItem("userId");
+      if (!userId) throw new Error("User not found, please login again");
 
-    useEffect(() => {
-        fetchNotifications();
-    }, []);
+      const { data } = await axios.get(
+        `${apiUrl}/notifications?userId=${userId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setNotifications(data);
+    } catch (err) {
+      console.error("Fetch notifications error:", err);
+      Alert.alert("Error", err.message || "Could not load notifications");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    return (
-        <View style={styles.container}>
-            <Text style={styles.header}>Notifications</Text>
-            {loading ? (
-                <ActivityIndicator size="large" color="#B71C1C" />
-            ) : notifications.length === 0 ? (
-                <Text style={styles.info}>No notifications</Text>
-            ) : (
-                <>
-                    <FlatList
-                        data={notifications}
-                        keyExtractor={item => item._id}
-                        renderItem={({ item }) => (
-                            <View style={styles.notification}>
-                                <Text style={styles.message}>{item.message}</Text>
-                                <Text style={styles.date}>{new Date(item.createdAt).toLocaleString()}</Text>
-                            </View>
-                        )}
-                    />
-                    <TouchableOpacity style={styles.clearButton} onPress={clearAllNotifications}>
-                        <Text style={styles.clearButtonText}>Clear All</Text>
-                    </TouchableOpacity>
-                </>
+  const clearAllNotifications = async () => {
+    setLoading(true);
+    try {
+      const token = await getToken();
+      if (!token) throw new Error("Not authenticated");
+      const userId = await AsyncStorage.getItem("userId"); 
+      if (!userId) throw new Error("User not found, please login again");
+
+      await axios.delete(`${apiUrl}/notifications/clear-all?userId=${userId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      fetchNotifications();
+    } catch (err) {
+      console.error("Clear notifications error:", err);
+      Alert.alert("Error", err.message || "Could not clear notifications");
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+  }, []);
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.header}>Notifications</Text>
+
+      {loading ? (
+        <ActivityIndicator size="large" color="#B71C1C" />
+      ) : notifications.length === 0 ? (
+        <Text style={styles.info}>No notifications</Text>
+      ) : (
+        <>
+          <FlatList
+            data={notifications}
+            keyExtractor={(item) => item._id}
+            renderItem={({ item }) => (
+              <View style={styles.notification}>
+                <Text style={styles.message}>{item.message}</Text>
+                <Text style={styles.date}>
+                  {new Date(item.createdAt).toLocaleString()}
+                </Text>
+              </View>
             )}
-        </View>
-    );
+          />
+          <TouchableOpacity
+            style={styles.clearButton}
+            onPress={clearAllNotifications}
+          >
+            <Text style={styles.clearButtonText}>Clear All</Text>
+          </TouchableOpacity>
+        </>
+      )}
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, padding: 16, backgroundColor: '#fff' },
-    header: { fontSize: 24, fontWeight: 'bold', color: '#B71C1C', marginBottom: 16 },
-    info: { textAlign: 'center', color: '#888', marginTop: 32 },
-    notification: { padding: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
-    message: { fontSize: 16, color: '#333' },
-    date: { fontSize: 12, color: '#888', marginTop: 4 },
-    clearButton: { marginTop: 16, alignSelf: 'center', backgroundColor: '#B71C1C', padding: 10, borderRadius: 8 },
-    clearButtonText: { color: '#fff', fontWeight: 'bold' },
-}); 
+  container: { flex: 1, padding: 16, backgroundColor: "#fff" },
+  header: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#B71C1C",
+    marginBottom: 16,
+  },
+  info: { textAlign: "center", color: "#888", marginTop: 32 },
+  notification: {
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+  },
+  message: { fontSize: 16, color: "#333" },
+  date: { fontSize: 12, color: "#888", marginTop: 4 },
+  clearButton: {
+    marginTop: 16,
+    alignSelf: "center",
+    backgroundColor: "#B71C1C",
+    padding: 10,
+    borderRadius: 8,
+  },
+  clearButtonText: { color: "#fff", fontWeight: "bold" },
+});

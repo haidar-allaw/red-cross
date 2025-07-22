@@ -5,9 +5,9 @@ import { authenticate } from '../middleware/authenticate.js'; // Assuming you ha
 const router = express.Router();
 
 // All routes are protected and require a logged-in user
-router.get('/', getNotifications);
+router.get('/', authenticate,getNotifications);
 router.patch('/:id/read', authenticate, markAsRead);
 router.patch('/read-all', authenticate, markAllAsRead);
-router.delete('/clear-all', clearAllNotifications);
+router.delete('/clear-all', authenticate,clearAllNotifications);
 
 export default router; 

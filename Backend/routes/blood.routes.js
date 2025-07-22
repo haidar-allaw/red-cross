@@ -14,11 +14,12 @@ import {
   completeDonation,
   cancelDonation
 } from "../controllers/blood.controller.js";
+import { authenticate } from "../middleware/authenticate.js";
 
 const router = express.Router();
 
 // Blood donation endpoints
-router.post("/donate", createBloodEntry);
+router.post("/donate",authenticate, createBloodEntry);
 router.post("/:id/complete", completeDonation);
 router.patch("/:id/cancel", cancelDonation);
 

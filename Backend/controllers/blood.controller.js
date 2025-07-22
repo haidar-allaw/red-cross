@@ -10,92 +10,54 @@ dotenv.config();
 const JWT_SECRET = process.env.JWT_SECRET;
 
 // POST /api/blood/donate - Create a new blood donation entry
+
+
 export async function createBloodEntry(req, res) {
   const { medicalCenter, bloodtype, units, timestamp, note } = req.body;
-
-  if (!medicalCenter || !bloodtype || !units || !timestamp) {
+  const userId = req.user && req.user._id;
+  
+  if (!userId || !medicalCenter || !bloodtype || !units) {
     return res.status(400).json({ message: 'Missing required fields' });
   }
 
-  // Validate blood type
-  const validBloodTypes = ['O-', 'O+', 'A-', 'A+', 'B-', 'B+', 'AB-', 'AB+'];
-  if (!validBloodTypes.includes(bloodtype)) {
-    return res.status(400).json({ message: 'Invalid blood type' });
-  }
+  // Validate center
+  const center = await MedicalCenter.findById(medicalCenter);
+  if (!center) return res.status(404).json({ message: 'Medical center not found' });
+  if (!center.isApproved) return res.status(400).json({ message: 'Center not approved' });
+
+  // Calculate expiry date (42 days after donation)
+  const donatedAt = timestamp ? new Date(timestamp) : new Date();
+  const expirydate = new Date(donatedAt);
+  expirydate.setDate(expirydate.getDate() + 42);
 
   try {
-    // Get user ID from token
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) {
-      return res.status(401).json({ message: 'Authentication required' });
-    }
-
-    let userId;
-    try {
-      // Properly verify and decode the JWT token
-      const decoded = jwt.verify(token, JWT_SECRET);
-      userId = decoded.id;
-
-      if (!userId) {
-        return res.status(401).json({ message: 'Invalid token - user ID not found' });
-      }
-
-      console.log('User ID from token:', userId);
-
-      // Verify user exists
-      const user = await User.findById(userId);
-      if (!user) {
-        return res.status(404).json({ message: 'User not found' });
-      }
-      console.log('User found:', user.firstname, user.lastname);
-    } catch (err) {
-      console.error('Error verifying token:', err);
-      return res.status(401).json({ message: 'Invalid token' });
-    }
-
-    // Check if medical center exists and is approved
-    const center = await MedicalCenter.findById(medicalCenter);
-    if (!center) {
-      return res.status(404).json({ message: 'Medical center not found' });
-    }
-    if (!center.isApproved) {
-      return res.status(400).json({ message: 'Medical center is not approved' });
-    }
-
-    // Calculate expiry date (blood typically expires after 42 days)
-    const expiryDate = new Date(timestamp);
-    expiryDate.setDate(expiryDate.getDate() + 42);
-
-    console.log('Creating blood entry with user ID:', userId);
-    const bloodEntry = await BloodEntry.create({
-      user: userId,
+    const entry = await BloodEntry.create({
+      user:          userId,
       medicalCenter,
       bloodtype,
       units,
-      expirydate: expiryDate,
-      timestamp: new Date(timestamp),
-      status: 'scheduled'
+      timestamp:     donatedAt,
+      expirydate,
+      cancellationReason: note || ''
     });
-    console.log('Blood entry created:', bloodEntry);
+
+    // Optionally notify the user
+    await Notification.create({
+      user: userId,
+      message: `Thank you! Your donation of ${units} unit(s) of ${bloodtype} on ${donatedAt.toLocaleDateString()} has been recorded.`,
+      link: '/my-donations'
+    });
 
     res.status(201).json({
-      message: 'Blood donation scheduled successfully',
-      bloodEntry: {
-        id: bloodEntry._id,
-        user: bloodEntry.user,
-        medicalCenter: bloodEntry.medicalCenter,
-        bloodtype: bloodEntry.bloodtype,
-        units: bloodEntry.units,
-        expirydate: bloodEntry.expirydate,
-        timestamp: bloodEntry.timestamp,
-        status: bloodEntry.status
-      }
+      message: 'Blood donation recorded successfully',
+      bloodEntry: entry
     });
   } catch (err) {
     console.error('Error creating blood entry:', err);
     res.status(500).json({ message: 'Server error' });
   }
 }
+
 
 // GET /api/blood - Get all blood entries with optional filters
 export async function getAllBloodEntries(req, res) {

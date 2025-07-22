@@ -1,11 +1,13 @@
-"use client"
+// DonationScreen.jsx
 
-import { useState, useEffect } from "react"
+"use client";
+
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
   StyleSheet,
-  ScrollView,   
+  ScrollView,
   TouchableOpacity,
   Alert,
   KeyboardAvoidingView,
@@ -14,123 +16,155 @@ import {
   Modal,
   FlatList,
   StatusBar,
-} from "react-native"
-import axios from "axios"
-import DateTimePicker from "@react-native-community/datetimepicker"
+  TextInput,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import DateTimePicker from "@react-native-community/datetimepicker";
 
-export default function DonationScreen({ navigation }) {  
+export default function DonationScreen({ navigation }) {
   // Form state
-  const [medicalCenter, setMedicalCenter] = useState("")
-  const [bloodType, setBloodType] = useState("")
-  const [donationDate, setDonationDate] = useState(new Date())
+  const [medicalCenter, setMedicalCenter] = useState("");
+  const [bloodType, setBloodType] = useState("");
+  const [units, setUnits] = useState("1");
+  const [donationDate, setDonationDate] = useState(new Date());
 
   // UI state
-  const [showDatePicker, setShowDatePicker] = useState(false)
-  const [showCenterModal, setShowCenterModal] = useState(false)
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showCenterModal, setShowCenterModal] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   // Data state
-  const [centers, setCenters] = useState([])
-  const [loadingCenters, setLoadingCenters] = useState(true)
-  const [submitting, setSubmitting] = useState(false)
+  const [centers, setCenters] = useState([]);
+  const [loadingCenters, setLoadingCenters] = useState(true);
 
-  const apiUrl = process.env.EXPO_PUBLIC_API_URL // e.g. http://192.168.0.100:4000/api
-  const bloodTypes = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"]
+  const apiUrl = process.env.EXPO_PUBLIC_API_URL;
+  const bloodTypes = ["O-", "O+", "A-", "A+", "B-", "B+", "AB-", "AB+"];
 
-  // Fetch centers once on component mount
+  // Fetch centers
   useEffect(() => {
-    const fetchCenters = async () => {
+    (async () => {
       try {
-        const resp = await axios.get(`${apiUrl}/centers/all`)
-        setCenters(resp.data)
-      } catch (err) {
-        console.error(err)
-        Alert.alert("Error", "Could not load medical centers. Please try again later.")
+        const { data } = await axios.get(`${apiUrl}/centers/all`);
+        setCenters(data);
+      } catch {
+        Alert.alert("Error", "Could not load medical centers.");
       } finally {
-        setLoadingCenters(false)
+        setLoadingCenters(false);
       }
-    }
-    fetchCenters()
-  }, [])
+    })();
+  }, []);
+
+  // Logout nav
+  const handleLogout = () => navigation.replace("Login");
 
   const handleDonationSubmit = async () => {
-    if (!medicalCenter || !bloodType || !donationDate) {
-      Alert.alert("Missing Information", "Please fill in all required fields to schedule your donation.")
-      return
+    if (!medicalCenter || !bloodType || !units) {
+      Alert.alert("Missing Info", "Please fill in all fields.");
+      return;
+    }
+    // Date check
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const sel = new Date(donationDate);
+    sel.setHours(0, 0, 0, 0);
+    if (sel < today) {
+      Alert.alert("Invalid Date", "Choose today or later.");
+      return;
     }
 
-    // Ensure date is today or future
-    const now = new Date()
-    now.setHours(0, 0, 0, 0)
-    const selected = new Date(donationDate)
-    selected.setHours(0, 0, 0, 0)
-    if (selected < now) {
-      Alert.alert("Invalid Date", "Please choose today or a future date for your donation.")
-      return
-    }
-
-    setSubmitting(true)
+    setSubmitting(true);
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500))
-      // In a real app, you'd send data to your backend here
-      // await axios.post(`${apiUrl}/donations/schedule`, { medicalCenter, bloodType, donationDate });
+      // grab token
+      const token = await AsyncStorage.getItem("userToken");
+      const url = `${apiUrl}/blood/donate`;
+      const body = {
+        medicalCenter,
+        bloodtype: bloodType,
+        units: Number(units),
+        timestamp: donationDate.toISOString(),
+        note: "",
+      };
 
+      // ⚠️  Notice: body is 2nd arg, { headers } is 3rd arg
+      await axios.post(url, body, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       Alert.alert(
         "Donation Scheduled!",
-        `Thank you for scheduling your donation for ${donationDate.toLocaleDateString()} at ${
+        `Booked ${units} unit(s) of ${bloodType} on ${donationDate.toLocaleDateString()} at ${
           centers.find((c) => c._id === medicalCenter)?.name
-        }. Your contribution saves lives!`,
-      )
-      // Reset form
-      setMedicalCenter("")
-      setBloodType("")
-      setDonationDate(new Date())
-    } catch (error) {
-      console.error("Donation submission error:", error)
-      Alert.alert("Submission Failed", "There was an issue scheduling your donation. Please try again.")
+        }.`
+      );
+
+      setMedicalCenter("");
+      setBloodType("");
+      setUnits("1");
+      setDonationDate(new Date());
+    } catch (err) {
+      console.error(
+        "❌ Submission error:",
+        err.response?.status,
+        err.response?.data
+      );
+      Alert.alert(
+        "Submission Failed",
+        err.response?.data?.message || "Please try again."
+      );
     } finally {
-      setSubmitting(false)
+      setSubmitting(false);
     }
-  }
+  };
 
   const selectedCenterName = medicalCenter
     ? centers.find((c) => c._id === medicalCenter)?.name || "Select a center"
-    : "Select a center"
+    : "Select a center";
 
   return (
     <>
       <StatusBar barStyle="dark-content" backgroundColor="#f8f8f8" />
-      <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-        <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <ScrollView contentContainerStyle={styles.scrollContainer}>
           {/* Header */}
           <View style={styles.header}>
-            <View style={styles.logo}>
-              <Text style={styles.logoText}>♥</Text>
+            <View style={styles.headerTop}>
+              <View style={styles.logo}>
+                <Text style={styles.logoText}>♥</Text>
+              </View>
+              <TouchableOpacity onPress={handleLogout}>
+                <Ionicons name="log-out-outline" size={28} color="#dc2626" />
+              </TouchableOpacity>
             </View>
             <Text style={styles.appName}>LifeShare</Text>
             <Text style={styles.title}>Schedule Your Donation</Text>
-            <Text style={styles.subtitle}>Your generosity can save lives. Thank you for being a hero!</Text>
+            <Text style={styles.subtitle}>Your generosity can save lives.</Text>
           </View>
 
-          {/* Why Donate Card */}
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Why Donate Blood?</Text>
-            <Text style={styles.cardText}>
-              • One donation can save up to 3 lives{"\n"}• Blood is needed every 2 seconds{"\n"}• Only 3% of eligible
-              people donate{"\n"}• Your donation is crucial for emergency care
-            </Text>
-          </View>
-
-          {/* Donation Form */}
+          {/* Form */}
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Donation Details</Text>
 
             <Text style={styles.label}>Medical Center</Text>
             {loadingCenters ? (
-              <ActivityIndicator color="#dc2626" size="large" style={styles.loadingIndicator} />
+              <ActivityIndicator color="#dc2626" size="large" />
             ) : (
-              <TouchableOpacity style={styles.input} onPress={() => setShowCenterModal(true)}>
-                <Text style={medicalCenter ? styles.inputText : styles.placeholderText}>{selectedCenterName}</Text>
+              <TouchableOpacity
+                style={styles.input}
+                onPress={() => setShowCenterModal(true)}
+              >
+                <Text
+                  style={
+                    medicalCenter ? styles.inputText : styles.placeholderText
+                  }
+                >
+                  {selectedCenterName}
+                </Text>
               </TouchableOpacity>
             )}
 
@@ -139,19 +173,40 @@ export default function DonationScreen({ navigation }) {
               {bloodTypes.map((type) => (
                 <TouchableOpacity
                   key={type}
-                  style={[styles.bloodTypeButton, bloodType === type && styles.bloodTypeButtonActive]}
+                  style={[
+                    styles.bloodTypeButton,
+                    bloodType === type && styles.bloodTypeButtonActive,
+                  ]}
                   onPress={() => setBloodType(type)}
                 >
-                  <Text style={[styles.bloodTypeButtonText, bloodType === type && styles.bloodTypeButtonTextActive]}>
+                  <Text
+                    style={[
+                      styles.bloodTypeButtonText,
+                      bloodType === type && styles.bloodTypeButtonTextActive,
+                    ]}
+                  >
                     {type}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
 
+            <Text style={styles.label}>Units</Text>
+            <TextInput
+              style={[styles.input, styles.numericInput]}
+              keyboardType="numeric"
+              value={units}
+              onChangeText={setUnits}
+            />
+
             <Text style={styles.label}>Preferred Date</Text>
-            <TouchableOpacity style={styles.input} onPress={() => setShowDatePicker(true)}>
-              <Text style={styles.inputText}>{donationDate.toLocaleDateString()}</Text>
+            <TouchableOpacity
+              style={styles.input}
+              onPress={() => setShowDatePicker(true)}
+            >
+              <Text style={styles.inputText}>
+                {donationDate.toLocaleDateString()}
+              </Text>
             </TouchableOpacity>
             {showDatePicker && (
               <DateTimePicker
@@ -159,93 +214,81 @@ export default function DonationScreen({ navigation }) {
                 mode="date"
                 display="calendar"
                 minimumDate={new Date()}
-                textColor="#dc2626"
-                accentColor="#dc2626"
-                onChange={(_, selectedDate) => {
-                  setShowDatePicker(false)
-                  if (selectedDate) setDonationDate(selectedDate)
+                onChange={(_, d) => {
+                  setShowDatePicker(false);
+                  d && setDonationDate(d);
                 }}
               />
             )}
 
             <TouchableOpacity
-              style={[styles.submitButton, submitting && styles.submitButtonDisabled]}
+              style={[
+                styles.submitButton,
+                submitting && styles.submitButtonDisabled,
+              ]}
               onPress={handleDonationSubmit}
               disabled={submitting}
             >
               {submitting ? (
-                <ActivityIndicator color="#ffffff" />
+                <ActivityIndicator color="#fff" />
               ) : (
                 <Text style={styles.submitButtonText}>Schedule Donation</Text>
               )}
             </TouchableOpacity>
           </View>
-
-          {/* Requirements Card */}
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Donation Requirements</Text>
-            <Text style={styles.cardText}>
-              • Age 16+ with parental consent{"\n"}• Weight at least 110 lbs{"\n"}• Good general health{"\n"}• No recent
-              tattoos or piercings{"\n"}• Not pregnant or recently pregnant
-            </Text>
-          </View>
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Medical Center Selection Modal */}
+      {/* Center Modal */}
       <Modal
         visible={showCenterModal}
         animationType="slide"
-        transparent={true}
+        transparent
         onRequestClose={() => setShowCenterModal(false)}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Select Medical Center</Text>
-            {loadingCenters ? (
-              <ActivityIndicator color="#dc2626" size="large" />
-            ) : (
-              <FlatList
-                data={centers}
-                keyExtractor={(item) => item._id}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={styles.modalItem}
-                    onPress={() => {
-                      setMedicalCenter(item._id)
-                      setShowCenterModal(false)
-                    }}
-                  >
-                    <Text style={styles.modalItemText}>{item.name}</Text>
-                    <Text style={styles.modalItemAddress}>{item.address}</Text>
-                  </TouchableOpacity>
-                )}
-                ItemSeparatorComponent={() => <View style={styles.modalItemSeparator} />}
-              />
-            )}
-            <TouchableOpacity style={styles.modalCloseButton} onPress={() => setShowCenterModal(false)}>
+            <FlatList
+              data={centers}
+              keyExtractor={(item) => item._id}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.modalItem}
+                  onPress={() => {
+                    setMedicalCenter(item._id);
+                    setShowCenterModal(false);
+                  }}
+                >
+                  <Text style={styles.modalItemText}>{item.name}</Text>
+                  <Text style={styles.modalItemAddress}>{item.address}</Text>
+                </TouchableOpacity>
+              )}
+              ItemSeparatorComponent={() => (
+                <View style={styles.modalItemSeparator} />
+              )}
+            />
+            <TouchableOpacity
+              style={styles.modalCloseButton}
+              onPress={() => setShowCenterModal(false)}
+            >
               <Text style={styles.modalCloseButtonText}>Close</Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
     </>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f8f8f8", // Light background color
-  },
-  scrollContainer: {
-    padding: 20,
-    paddingBottom: 40, // Extra padding for scroll
-  },
-  header: {
+  container: { flex: 1, backgroundColor: "#f8f8f8" },
+  scrollContainer: { padding: 20, paddingBottom: 40 },
+  header: { marginBottom: 30 },
+  headerTop: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 30,
-    paddingTop: 20,
   },
   logo: {
     width: 70,
@@ -254,66 +297,30 @@ const styles = StyleSheet.create({
     borderRadius: 35,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 16,
-    shadowColor: "#dc2626",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
   },
-  logoText: {
-    color: "#ffffff",
-    fontSize: 30,
-    fontWeight: "700",
-  },
-  appName: {
-    fontSize: 28,
-    fontWeight: "800",
-    color: "#111827",
-    marginBottom: 8,
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: "700",
-    color: "#111827",
-    textAlign: "center",
-    marginBottom: 10,
-  },
-  subtitle: {
-    fontSize: 15,
-    color: "#6b7280",
-    textAlign: "center",
-    lineHeight: 22,
-  },
+  logoText: { color: "#fff", fontSize: 30, fontWeight: "700" },
+  appName: { fontSize: 28, fontWeight: "800", color: "#111827", marginTop: 10 },
+  title: { fontSize: 26, fontWeight: "700", color: "#111827", marginTop: 6 },
+  subtitle: { fontSize: 15, color: "#6b7280", marginTop: 4 },
   card: {
-    backgroundColor: "#ffffff",
+    backgroundColor: "#fff",
     padding: 20,
     borderRadius: 15,
     marginBottom: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
   },
   cardTitle: {
     fontSize: 20,
     fontWeight: "700",
     color: "#dc2626",
-    marginBottom: 15,
     textAlign: "center",
-  },
-  cardText: {
-    fontSize: 15,
-    color: "#4b5563",
-    lineHeight: 24,
+    marginBottom: 10,
   },
   label: {
     fontSize: 16,
     fontWeight: "600",
     color: "#374151",
-    marginBottom: 10,
     marginTop: 15,
+    marginBottom: 8,
   },
   input: {
     borderWidth: 1,
@@ -321,119 +328,61 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 15,
     backgroundColor: "#f9fafb",
-    fontSize: 16,
-    color: "#111827",
     marginBottom: 15,
-    justifyContent: "center", // For text alignment in TouchableOpacity
-    minHeight: 50, // Ensure consistent height
+    justifyContent: "center",
   },
-  inputText: {
-    fontSize: 16,
-    color: "#111827",
-  },
-  placeholderText: {
-    fontSize: 16,
-    color: "#9ca3af",
-  },
-  loadingIndicator: {
-    marginVertical: 20,
-  },
+  numericInput: { textAlign: "center" },
+  inputText: { fontSize: 16, color: "#111827" },
+  placeholderText: { fontSize: 16, color: "#9ca3af" },
   bloodTypeContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
-    marginBottom: 15,
   },
   bloodTypeButton: {
+    width: "23%",
     borderWidth: 1,
     borderColor: "#e5e7eb",
     borderRadius: 10,
     paddingVertical: 12,
-    paddingHorizontal: 18,
-    width: "23%", // Approx 4 items per row with spacing
     alignItems: "center",
     marginBottom: 10,
     backgroundColor: "#f9fafb",
   },
-  bloodTypeButtonActive: {
-    backgroundColor: "#dc2626",
-    borderColor: "#dc2626",
-    shadowColor: "#dc2626",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  bloodTypeButtonText: {
-    fontSize: 15,
-    color: "#4b5563",
-    fontWeight: "500",
-  },
-  bloodTypeButtonTextActive: {
-    color: "#ffffff",
-    fontWeight: "700",
-  },
+  bloodTypeButtonActive: { backgroundColor: "#dc2626", borderColor: "#dc2626" },
+  bloodTypeButtonText: { color: "#4b5563", fontWeight: "500" },
+  bloodTypeButtonTextActive: { color: "#fff", fontWeight: "700" },
   submitButton: {
     backgroundColor: "#dc2626",
     paddingVertical: 18,
     borderRadius: 12,
     alignItems: "center",
     marginTop: 20,
-    shadowColor: "#dc2626",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
   },
-  submitButtonDisabled: {
-    backgroundColor: "#9ca3af",
-    shadowOpacity: 0.1,
-    elevation: 2,
-  },
-  submitButtonText: {
-    color: "#ffffff",
-    fontSize: 18,
-    fontWeight: "700",
-  },
+  submitButtonDisabled: { backgroundColor: "#9ca3af" },
+  submitButtonText: { color: "#fff", fontSize: 18, fontWeight: "700" },
   modalOverlay: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    backgroundColor: "rgba(0,0,0,0.6)",
   },
   modalContent: {
-    backgroundColor: "#ffffff",
-    borderRadius: 20,
-    padding: 25,
     width: "90%",
     maxHeight: "80%",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    elevation: 10,
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    padding: 20,
   },
   modalTitle: {
     fontSize: 22,
     fontWeight: "700",
-    color: "#111827",
-    marginBottom: 20,
     textAlign: "center",
+    marginBottom: 15,
   },
-  modalItem: {
-    paddingVertical: 15,
-    paddingHorizontal: 10,
-  },
-  modalItemText: {
-    fontSize: 17,
-    color: "#111827",
-    fontWeight: "600",
-  },
-  modalItemAddress: {
-    fontSize: 14,
-    color: "#6b7280",
-    marginTop: 4,
-  },
+  modalItem: { paddingVertical: 12 },
+  modalItemText: { fontSize: 17, fontWeight: "600" },
+  modalItemAddress: { fontSize: 14, color: "#6b7280", marginTop: 4 },
   modalItemSeparator: {
     height: 1,
     backgroundColor: "#e5e7eb",
@@ -441,14 +390,10 @@ const styles = StyleSheet.create({
   },
   modalCloseButton: {
     backgroundColor: "#dc2626",
-    paddingVertical: 15,
+    padding: 12,
     borderRadius: 12,
+    marginTop: 10,
     alignItems: "center",
-    marginTop: 20,
   },
-  modalCloseButtonText: {
-    color: "#ffffff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-})
+  modalCloseButtonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
+});
